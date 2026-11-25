@@ -60,7 +60,7 @@ const rebondSaut = (L, yaw) => [
 ];
 export const rondadeSaut = () => ({ keys: chain(runHurdle(1), lungeFromHurdle(), rondadeCore(), rebondSaut(360, -180)), thumb: 2.3 });
 export const rondadeTrampo = () => ({
-  props: [{ k: 'wedge', at: 'plant:handL', ref: 'wrL', dx: -0.25, x0: 0, x1: 0.95, z0: -0.45, z1: 0.45, h0: 0.22, h1: 0.4, color: '#1e293b' }],
+  props: [{ k: 'wedge', at: 'plant:handL', ref: 'wrL', dx: -0.3, x0: 0, x1: 0.62, z0: -0.45, z1: 0.45, h0: 0.22, h1: 0.4, color: '#1e293b' }],
   keys: chain(runHurdle(1), lungeFromHurdle(), rondadeCore(), standAfter(360, -180)),
   thumb: 2.3,
 });
@@ -92,7 +92,7 @@ export const rondadeFlip = () => ({
 
 /** Rondade puis tomber sur le dos (sur la fosse) – remédiation du flip. */
 export const rondadeTomberDos = () => ({
-  props: [{ k: 'box', at: 2.7, dx: 0.25, x0: 0, x1: 2.2, z0: -0.9, z1: 0.9, h: 0.5, color: '#1d4ed8' }],
+  props: [{ k: 'box', at: 'land#2', ref: 'anR', dx: 0.55, x0: 0, x1: 2.2, z0: -0.9, z1: 0.9, h: 0.5, color: '#1d4ed8' }],
   keys: chain(runHurdle(1), lungeFromHurdle(), rondadeCore(),
     [C(0), K(0.15, { lean: 356, yaw: -180, hp: [0, 0, 0], kn: 0, an: 40, ff: 0, sp: 0, sh: [178, 8, 0] }, { label: 'Arriver jambes tendues en déséquilibre arrière, rebondir', fly: 0.6 }),
       K(0.45, { lean: 420, yaw: -180, sp: -8 }), K(0.62, { lean: 448, yaw: -180, an: 40 }, { land: true, label: 'Tomber à plat dos, gainé' }), K(1.1, {})]),
@@ -114,7 +114,7 @@ export const tomberDos = () => ({
 
 /** Impulsion des jambes et lancer des bras vers l'arrière, réception sur le dos (fosse) – flip B. */
 export const lancerArriere = () => ({
-  props: [{ k: 'box', x0: -2.6, x1: -0.25, z0: -0.9, z1: 0.9, h: 0.55, color: '#1d4ed8' }],
+  props: [{ k: 'box', x0: -2.8, x1: -0.55, z0: -0.9, z1: 0.9, h: 0.35, color: '#1d4ed8' }],
   keys: chain([K(0, STAND_UP, { label: 'Départ debout' })],
     [C(0),
       K(0.35, { sp: 22, nk: 20, sh: [-15, 8, 0], hp: [22, 0, 0], kn: 18 }, { label: 'Dos arrondi, bras vers le bas' }),
@@ -183,16 +183,16 @@ function saltoAvantCore(L, { flight = 0.7, dist = 1.0, seated = false } = {}) {
   return k;
 }
 const STACK = (x0, h = 0.45, len = 2.2) => ({ k: 'box', x0, x1: x0 + len, z0: -0.9, z1: 0.9, h, color: '#2563eb' });
-const TRAMP = (at, dx = -0.25) => ({ k: 'wedge', at, dx, x0: 0, x1: 0.7, z0: -0.4, z1: 0.4, h0: 0.25, h1: 0.45, color: '#111827' });
-const TREMPLIN = (at, dx = -0.3) => ({ k: 'wedge', at, dx, x0: 0, x1: 0.75, z0: -0.35, z1: 0.35, h0: 0.05, h1: 0.22, color: '#b45309' });
+const TRAMP = (at, dx = -0.22) => ({ k: 'wedge', at: 'land', ref: 'anR', dx, x0: 0, x1: 0.7, z0: -0.4, z1: 0.4, h0: 0.25, h1: 0.45, color: '#111827' });
+const TREMPLIN = (at, dx = -0.4) => ({ k: 'wedge', at: 'land', ref: 'anR', dx, x0: 0, x1: 0.75, z0: -0.35, z1: 0.35, h0: 0.05, h1: 0.22, color: '#b45309' });
 
 export const saltoAvant = () => ({ keys: chain(runHurdle(3), saltoAvantCore(0), standAfter(360, 0)), thumb: 2.1 });
 export const saltoAvantTremplin = () => ({
-  props: [TREMPLIN(1.4), { ...STACK(0, 0.22), at: 1.4, dx: 0.6 }],
+  props: [TREMPLIN(1.4), { ...STACK(0, 0.22), at: 'land', ref: 'anR', dx: 0.9 }],
   keys: chain(runHurdle(3), saltoAvantCore(0, { flight: 0.78, dist: 1.2 }), standAfter(360, 0)), thumb: 2.1,
 });
 export const saltoAvantTrampo = ({ seated = false } = {}) => ({
-  props: [TRAMP(0.95), { ...STACK(0, 0.5), at: 0.95, dx: 0.65 }],
+  props: [TRAMP(0.95), { ...STACK(0, 0.5), at: 'land', ref: 'anR', dx: 0.6 }],
   keys: chain(runHurdle(1), saltoAvantCore(0, { flight: 0.82, dist: 1.25, seated }), seated ? [C(0), K(0.5, { lean: 345, sp: 30, hp: [100, 0, 0], kn: 120, an: 0, ff: 1, sh: [110, 10, 0] }, { label: 'Se relever' }), K(1.0, { ...STAND_UP, lean: 360 })] : standAfter(360, 0)), thumb: 1.5,
 });
 
@@ -211,11 +211,11 @@ function angeCore({ high = false, dist = 1.0, flight = 0.5 } = {}) {
 }
 export const sautAnge = () => ({ keys: chain(runHurdle(3), angeCore()), thumb: 2.2 });
 export const sautAngeTremplin = () => ({
-  props: [TREMPLIN(1.4), { ...STACK(0, 0.22, 3), at: 1.4, dx: 0.55 }],
+  props: [TREMPLIN(1.4), { ...STACK(0, 0.22, 3), at: 'land', ref: 'anR', dx: 0.85 }],
   keys: chain(runHurdle(3), angeCore({ dist: 1.3, flight: 0.62 })), thumb: 2.3,
 });
 export const rouladeEleveeTrampo = () => ({
-  props: [TRAMP(0.95), { ...STACK(0, 0.5, 2.6), at: 0.95, dx: 0.6 }],
+  props: [TRAMP(0.95), { ...STACK(0, 0.5, 2.6), at: 'land', ref: 'anR', dx: 0.6 }],
   keys: chain(runHurdle(1), angeCore({ high: true, dist: 0.9, flight: 0.55 })), thumb: 1.5,
 });
 

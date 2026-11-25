@@ -51,23 +51,24 @@ export const takeoff = (o = {}) => KW(0.22, { ...ST, lean: 0, T: 0, th: 0, sn: 0
 export const landing = (t, o = {}) => KW(t, { ...ST, lean: 18, T: 26, th: 62, sn: -24, ar: 95, fa: 95, an: 0, ff: 1, ...o }, { label: 'Réception : amortir, bras devant', land: true });
 
 /** Course d'élan (n foulées) puis sursaut (appel 1 pied → réception 2 pieds) ; finit pieds joints, bras en haut, prêt à la fente. */
-export function runHurdle(n = 2, { arms = 'up' } = {}) {
-  const keys = [KW(0, { ...ST, ar: 10, fa: 30 }, { label: 'Élan (quelques pas)' })];
-  let t = 0;
+export function runHurdle(n = 2) {
+  // course pilotée : environ 2,6 m/s, foulées alternées ; puis sursaut (appel 1 pied, réception 2 pieds)
+  const keys = [KW(0, { ...ST, ar: 10, fa: 30, x: 0 }, { label: 'Élan (quelques pas)', drive: true })];
+  let t = 0, x = 0;
   for (let i = 0; i < n; i++) {
     const R = i % 2 === 0;
-    t += 0.3;
+    t += 0.3; x += 0.78;
     keys.push(KW(t, {
-      ...ST, lean: 6, T: 8, thR: R ? 50 : -30, snR: R ? 0 : -60, thL: R ? -30 : 50, snL: R ? -60 : 0,
-      arR: R ? -40 : 50, faR: R ? -20 : 110, arL: R ? 50 : -40, faL: R ? 110 : -20, fR: R ? 0.5 : 0, fL: R ? 0 : 0.5, anR: R ? 0 : 50, anL: R ? 50 : 0,
+      ...ST, x, lean: 8, T: 10, thR: R ? 42 : -28, snR: R ? 2 : -75, thL: R ? -28 : 42, snL: R ? -75 : 2,
+      arR: R ? -40 : 50, faR: R ? -20 : 110, arL: R ? 50 : -40, faL: R ? 110 : -20, fR: R ? 0.6 : 0, fL: R ? 0 : 0.6, anR: R ? 0 : 55, anL: R ? 55 : 0,
     }));
   }
-  t += 0.28;
-  keys.push(KW(t, { ...ST, lean: 4, T: 6, thL: 62, snL: 5, thR: -10, snR: -10, an: 40, ar: 150, fa: 165, ff: 0 }, { label: 'Sursaut : grand saut vers l’avant, bras en haut', fly: 0.65 }));
+  t += 0.26; x += 0.55;
+  keys.push(KW(t, { ...ST, x, lean: 4, T: 6, thL: 62, snL: 5, thR: -10, snR: -10, an: 40, ar: 150, fa: 165, ff: 0 }, { label: 'Sursaut : grand saut vers l’avant, bras en haut', fly: 0.9 }));
   t += 0.18;
-  keys.push(KW(t, { ...ST, lean: 0, T: 0, thL: 40, snL: 20, thR: 0, snR: 0, an: 45, ar: 176, fa: 176, ff: 0 }));
+  keys.push(KW(t, { ...ST, x, lean: 0, T: 0, thL: 40, snL: 20, thR: 0, snR: 0, an: 45, ar: 176, fa: 176, ff: 0 }));
   t += 0.2;
-  keys.push(KW(t, { ...ST_UP, lean: 6, T: 8, th: 28, sn: -10, ar: arms === 'up' ? 172 : 172, fa: 172, ff: 1 }, { land: true, label: '« Se grandir », bras alignés avec le dos' }));
+  keys.push(KW(t, { ...ST_UP, x, lean: 6, T: 8, th: 28, sn: -10, ar: 172, fa: 172, ff: 1 }, { land: true, drive: false, label: '« Se grandir », bras alignés avec le dos' }));
   return keys;
 }
 

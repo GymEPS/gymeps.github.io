@@ -44,10 +44,10 @@ export const chandelle = () => tenue(
   { out: [KW(0, {}), KW(0.7, { lean: -150, T: -95, th: 130, sn: 60, nk: 20 }), KW(1.4, { lean: -90, T: -90, th: 90, sn: 90, ar: 90, fa: 90, nk: 0 }, { label: 'Dérouler le dos' })] });
 
 export const pont = () => tenue(
-  [KW(0, { ...ST, lean: -95, T: -90, th: 50, sn: -40, ar: 175, fa: 300, ff: 1, hf: 1, nk: 0 }, { label: 'Sur le dos, pieds et mains à plat (mains près des oreilles)', plant: ALL4 }),
+  [KW(0, { ...ST, lean: -95, T: -90, th: 135, sn: 45, ar: 225, fa: 20, ff: 1, hf: 1, nk: 0 }, { label: 'Sur le dos, pieds et mains à plat (mains près des oreilles)', plant: ALL4 }),
     KW(1.0, { lean: -40, T: -150, th: 60, sn: -10, ar: -15, fa: -15, sha: 10, nk: -40 }, { label: 'Pousser bras et jambes : monter le ventre' })],
   { lean: -38, T: -155, th: 62, sn: -4, ar: -18, fa: -18, nk: -45 }, 'Pont : bras tendus, jambes serrées',
-  { out: [KW(0, {}), KW(0.9, { lean: -95, T: -90, th: 50, sn: -40, ar: 175, fa: 300, nk: 0 }, { label: 'Redescendre doucement' }), KW(1.3, { lean: -95, T: -90, th: 50, sn: -40 }, { plant: [] })] });
+  { out: [KW(0, {}), KW(0.9, { lean: -95, T: -90, th: 135, sn: 45, ar: 225, fa: 20, nk: 0 }, { label: 'Redescendre doucement' }), KW(1.3, { lean: -95, T: -90, th: 135, sn: 45 }, { plant: [] })] });
 
 export const equerreGroupee = () => tenue(
   [KW(0, { ...ST, lean: -10, T: 0, th: 80, sn: -40, ar: 0, fa: 0, hf: 1, wr: 80, ff: 1 }, { label: 'Assis, mains à plat près des hanches', plant: HANDS }),

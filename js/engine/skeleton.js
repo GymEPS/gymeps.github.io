@@ -33,7 +33,7 @@ const UP = [0, 1, 0];
 const horiz = v => { const h = [v[0], 0, v[2]]; return len(h) > 1e-4 ? norm(h) : null; };
 
 /** Cinématique directe. Renvoie les points (P) et repères (F) de chaque segment. */
-export function fk(c, rootPos) {
+export function fk(c, rootPos, mem) {
   const P = {}, F = {};
   const R0 = rootRot(c);
   P.root = rootPos; F.root = R0;
@@ -65,25 +65,48 @@ export function fk(c, rootPos) {
     P['he' + S] = add(P['an' + S], mv(F['an' + S], BODY.heel));
     P['to' + S] = add(P['an' + S], mv(F['an' + S], BODY.toe));
   }
-  flatten(P, F, c);
+  flatten(P, F, c, mem);
   return { P, F };
 }
 
-/** Pieds et mains posés à plat (poids fR / fL / hR / hL) : semelle / paume horizontale, dans l'axe du tibia / de l'avant-bras. */
-function flatten(P, F, c) {
+/**
+ * Pieds et mains posés à plat (poids fR / fL / hR / hL) : semelle / paume horizontale.
+ * Direction = celle des orteils / des doigts dans la pose ; quand elle devient floue (membre vertical), on garde la direction
+ * de l'image précédente (mem) : plus de main ou de pied qui pivote d'un demi-tour d'un coup.
+ */
+function heading(key, cands, mem) {
+  // cands = [[direction horizontale, netteté 0..1], …] : on vise la plus nette, mais on tourne au plus de 9° par image
+  let best = null;
+  for (const [h, m] of cands) if (h && (!best || m > best[1])) best = [h, m];
+  const prev = mem && mem[key];
+  let h;
+  if (!prev) h = best ? best[0] : [1, 0, 0];
+  else if (!best || best[1] < 0.2) h = prev;
+  else {
+    const a0 = Math.atan2(prev[2], prev[0]), a1 = Math.atan2(best[0][2], best[0][0]);
+    let d = ((a1 - a0 + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    const max = 0.16 * clamp(best[1], 0.3, 1);
+    d = clamp(d, -max, max);
+    h = [Math.cos(a0 + d), 0, Math.sin(a0 + d)];
+  }
+  if (mem) mem[key] = h;
+  return h;
+}
+const hdir = v => { const h = horiz(v); return [h, Math.hypot(v[0], v[2]) / (len(v) || 1)]; };
+function flatten(P, F, c, mem) {
   for (const S of ['R', 'L']) {
     const wf = c['f' + S];
+    const hf = heading('f' + S, [hdir(col(F['kn' + S], 0))], mem); // le pied posé suit le devant du tibia
     if (wf > 0.001) {
-      const h = horiz(col(F['kn' + S], 0)) || horiz(sub(P['to' + S], P['he' + S])) || [1, 0, 0];
-      const he = add(P['an' + S], add(scl(h, -0.045), [0, -0.062, 0]));
-      const to = add(P['an' + S], add(scl(h, 0.15), [0, -0.062, 0]));
+      const he = add(P['an' + S], add(scl(hf, -0.045), [0, -0.062, 0]));
+      const to = add(P['an' + S], add(scl(hf, 0.15), [0, -0.062, 0]));
       P['he' + S] = lerp(P['he' + S], he, wf);
       P['to' + S] = lerp(P['to' + S], to, wf);
     }
     const wh = c['h' + S];
+    const hm = heading('h' + S, [hdir(sub(P['fi' + S], P['wr' + S])), hdir(col(F['el' + S], 0)).map((x, i) => (i ? x * 0.8 : x))], mem);
     if (wh > 0.001) {
-      const h = horiz(col(F['el' + S], 0)) || horiz(sub(P['fi' + S], P['wr' + S])) || [1, 0, 0];
-      const fi = add(P['wr' + S], add(scl(h, BODY.hand - 0.005), [0, -0.018, 0]));
+      const fi = add(P['wr' + S], add(scl(hm, BODY.hand - 0.005), [0, -0.018, 0]));
       P['fi' + S] = lerp(P['fi' + S], fi, wh);
     }
   }
@@ -130,12 +153,27 @@ export function surfaceAt(props, x, z) {
   return y;
 }
 
+/** Distance (en m) entre une sphère et le sol / le matériel : les arêtes des tapis et des blocs sont « arrondies » par le contact. */
+function clearance(q, r, props) {
+  let cl = q[1] - r;
+  for (const p of props || []) {
+    if (p.solid === false || p.k === 'mark') continue;
+    const xc = clamp(q[0], p.x0, p.x1);
+    const top = p.k === 'wedge' ? p.h0 + (p.h1 - p.h0) * (xc - p.x0) / (p.x1 - p.x0) : p.h;
+    const dx = Math.max(p.x0 - q[0], 0, q[0] - p.x1), dz = Math.max(p.z0 - q[2], 0, q[2] - p.z1);
+    let c;
+    if (dx === 0 && dz === 0) c = q[1] - r - top;
+    else if (q[1] >= top) c = Math.hypot(dx, dz, q[1] - top) - r;
+    else continue; // à côté du bloc, plus bas que le dessus : pas un appui
+    if (c < cl) cl = c;
+  }
+  return cl;
+}
 function lowest(P, props, skip) {
   let best = null;
   for (const e of CONTACTS) {
     if (skip && skip(e)) continue;
-    const q = P[e.p];
-    const cl = q[1] - e.r - surfaceAt(props, q[0], q[2]);
+    const cl = clearance(P[e.p], e.r, props);
     if (!best || cl < best.cl) best = { e, cl };
   }
   return best;
@@ -143,8 +181,8 @@ function lowest(P, props, skip) {
 const shiftAll = (P, d) => { for (const k in P) P[k] = add(P[k], d); };
 
 /** Bouts des mains / pieds qui passeraient sous la surface : on les relève en gardant la longueur (la main / le pied se pose à plat). */
-function clampDistal(P, props) {
-  const fix = (tip, base, r) => {
+function clampDistal(P, props, mem) {
+  const fix = (tip, base, r, key) => {
     const q = P[tip], b = P[base];
     const s = surfaceAt(props, q[0], q[2]) + r;
     if (q[1] >= s) return;
@@ -152,14 +190,17 @@ function clampDistal(P, props) {
     const dy = s - b[1];
     let h = [q[0] - b[0], 0, q[2] - b[2]];
     const hl = len(h);
-    h = hl > 1e-5 ? scl(h, 1 / hl) : [1, 0, 0];
+    const kk = 'c' + tip;
+    if (hl > 0.03) h = scl(h, 1 / hl);
+    else h = (mem && (mem[kk] || mem[key])) || (hl > 1e-6 ? scl(h, 1 / hl) : [1, 0, 0]);
+    if (mem && hl > 0.03) mem[kk] = h;
     const hor = Math.sqrt(Math.max(0, L * L - dy * dy));
     P[tip] = [b[0] + h[0] * hor, s, b[2] + h[2] * hor];
   };
   for (const S of ['R', 'L']) {
-    fix('fi' + S, 'wr' + S, 0.012);
-    fix('to' + S, 'an' + S, 0.016);
-    fix('he' + S, 'an' + S, 0.024);
+    fix('fi' + S, 'wr' + S, 0.012, 'h' + S);
+    fix('to' + S, 'an' + S, 0.016, 'f' + S);
+    fix('he' + S, 'an' + S, 0.024, 'f' + S);
   }
 }
 
@@ -168,7 +209,7 @@ const CHAINS = {
   handR: ['shR', 'elR', 'wrR', ['fiR'], BODY.uarm, BODY.farm], handL: ['shL', 'elL', 'wrL', ['fiL'], BODY.uarm, BODY.farm],
   footR: ['hpR', 'knR', 'anR', ['heR', 'toR'], BODY.thigh, BODY.shin], footL: ['hpL', 'knL', 'anL', ['heL', 'toL'], BODY.thigh, BODY.shin],
 };
-export function solveIK(P, eff, target) {
+export function solveIK(P, eff, target, F) {
   const [a, b, c, tips, l1, l2] = CHAINS[eff];
   const A = P[a], B0 = P[b], C0 = P[c];
   let d = sub(target, A);
@@ -176,8 +217,19 @@ export function solveIK(P, eff, target) {
   const dmax = l1 + l2 - 1e-4, dmin = Math.abs(l1 - l2) + 0.02;
   const dc = clamp(dl, dmin, dmax);
   const dir = dl > 1e-6 ? scl(d, 1 / dl) : [0, -1, 0];
+  // sens de flexion : toujours le sens naturel (coude vers l'arrière du bras, genou vers l'avant de la cuisse) ;
+  // la pose ne sert qu'à choisir le plan exact quand elle plie déjà franchement dans ce sens
   let pole = sub(B0, A);
   pole = sub(pole, scl(dir, dot(pole, dir)));
+  if (F) {
+    const nat0 = scl(col(F[a], 0), a.startsWith('sh') ? -1 : 1);
+    let nat = sub(nat0, scl(dir, dot(nat0, dir)));
+    if (len(nat) < 1e-6) nat = pole;
+    nat = len(nat) > 1e-6 ? norm(nat) : [0, 1, 0];
+    const L = len(pole);
+    if (L < 1e-6 || dot(pole, nat) <= 0) pole = nat;
+    else { const w = clamp(L / 0.04, 0, 1); pole = add(scl(norm(pole), w), scl(nat, 1 - w)); }
+  }
   if (len(pole) < 1e-5) pole = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
   pole = norm(pole);
   const x = (l1 * l1 - l2 * l2 + dc * dc) / (2 * dc);
@@ -189,7 +241,26 @@ export function solveIK(P, eff, target) {
   P[b] = B; P[c] = C;
 }
 const EFF_POINT = { handR: 'wrR', handL: 'wrL', footR: 'anR', footL: 'anL' };
-
+/** Cible intermédiaire entre la main / le pied « libre » et l'appui : on mélange la direction et la distance depuis l'épaule / la hanche
+ * (et non les positions), pour que le membre ne se replie pas brutalement en chemin. */
+function pinTarget(P, eff, pos, e, props) {
+  const t = pinTarget0(P, eff, pos, e);
+  const m = surfaceAt(props, t[0], t[2]) + (eff.startsWith('hand') ? 0.03 : 0.075);
+  if (t[1] < m) t[1] = m;
+  return t;
+}
+function pinTarget0(P, eff, pos, e) {
+  const A = P[CHAINS[eff][0]], C = P[EFF_POINT[eff]];
+  const v0 = sub(C, A), v1 = sub(pos, A);
+  const d0 = len(v0), d1 = len(v1);
+  if (d0 < 1e-6 || d1 < 1e-6) return lerp(C, pos, e);
+  const u0 = scl(v0, 1 / d0), u1 = scl(v1, 1 / d1);
+  const ang = Math.acos(clamp(dot(u0, u1), -1, 1));
+  let u;
+  if (ang < 1e-4) u = u1;
+  else { const s0 = Math.sin((1 - e) * ang) / Math.sin(ang), s1 = Math.sin(e * ang) / Math.sin(ang); u = add(scl(u0, s0), scl(u1, s1)); }
+  return add(A, scl(u, d0 + (d1 - d0) * e));
+}
 // ---------------------------------------------------------------- Images clés → animation cuite
 /**
  * anim = { keys: [{ t, ...canaux (via pose()), label?, plant?: ['handR', …], fly?: distance horizontale, land?: true }], props?, end? }
@@ -205,10 +276,11 @@ export function bake(anim, fps = 60) {
   for (const ch of CHANNELS) splines[ch] = monotone(ts, full.map(f => f[ch]));
   const chAt = t => { const c = {}; for (const ch of CHANNELS) c[ch] = splines[ch](t); return c; };
   // états discrets (appuis, vols) par intervalle de clés
-  let plant = [];
+  let plant = [], drive = false;
   const seg = keys.map((k, i) => {
     if (k.plant) plant = k.plant;
-    return { plant, fly: k.fly, flyTo: k.fly !== undefined ? keys.findIndex((q, j) => j > i && q.land) : -1 };
+    if (k.drive !== undefined) drive = k.drive;
+    return { plant, drive, fly: k.fly, flyTo: k.fly !== undefined ? keys.findIndex((q, j) => j > i && q.land) : -1 };
   });
   // un vol dure de la clé d'appel jusqu'à la clé de réception, même s'il y a des clés entre les deux
   seg.forEach((s, i) => { if (s.fly !== undefined && s.flyTo > i) for (let k = i; k < s.flyTo; k++) seg[k].fl = i; });
@@ -219,6 +291,8 @@ export function bake(anim, fps = 60) {
   let contact = null; // { e, local } point « matière » au contact au pas précédent
   let pins = {};
   let flight = null;
+  const mem = {}; // directions des mains / pieds à l'image précédente
+  const fall = { vy: 0 }; // vitesse verticale (chute libre quand l'appui disparaît)
   for (let f = 0; f < n; f++) {
     const t = Math.min(T, f / fps);
     let ki = 0;
@@ -227,7 +301,7 @@ export function bake(anim, fps = 60) {
     const S = S0.fl !== undefined ? { ...S0, fly: seg[S0.fl].fly, flyTo: seg[S0.fl].flyTo, flyKey: S0.fl } : S0;
     const c = chAt(t);
     let base = [c.x + off[0], 1, c.z + off[2]];
-    let { P, F } = fk(c, base);
+    let { P, F } = fk(c, base, mem);
     addMids(P, F);
     // --- vol balistique
     if (S.fly !== undefined && S.flyTo > ki && t < keys[S.flyTo].t) {
@@ -240,7 +314,7 @@ export function bake(anim, fps = 60) {
         const probe = fk(c1, [x1[0], 1, x1[2]]); addMids(probe.P, probe.F);
         const lo = lowest(probe.P, props);
         flight = { ki: S.flyKey, t0, t1, x0: [...x0], x1, y1: 1 - lo.cl, base0: c.x, base1: c1.x };
-        pins = {}; contact = null;
+        contact = null; // les appuis se lâchent en fondu (voir plus bas), sans à-coup
       }
       const u = (t - flight.t0) / (flight.t1 - flight.t0);
       const Tf = flight.t1 - flight.t0;
@@ -251,47 +325,24 @@ export function bake(anim, fps = 60) {
       if (lo.cl < 0) shiftAll(P, [0, -lo.cl, 0]);
       off = [P.root[0] - c.x, 0, P.root[2] - c.z];
     } else {
-      if (flight) { flight = null; contact = null; }
-      // --- appui au sol : le plus bas touche, sans glisser
+      if (flight) { flight = null; contact = null; fall.vy = 0; }
+      // --- appui au sol : le plus bas touche, sans glisser (calculé sur la pose « naturelle », avant les appuis fixés)
       const lo = lowest(P, props);
-      shiftAll(P, [0, -lo.cl, 0]);
-      if (contact) {
+      // posé sur le plus bas… mais si l'appui disparaît (bord d'un bloc), le corps TOMBE avec la gravité au lieu de descendre d'un coup
+      let dy = -lo.cl;
+      if (fall && frames.length) {
+        const yPrev = frames[frames.length - 1].P.root[1];
+        const yTarget = P.root[1] + dy;
+        const dt = 1 / fps;
+        const yFree = yPrev + fall.vy * dt - 0.5 * 9.81 * dt * dt;
+        if (yTarget < yFree - 0.002) { dy = yFree - P.root[1]; fall.vy -= 9.81 * dt; }
+        else fall.vy = Math.max(-3, Math.min(3, (yTarget - yPrev) / dt));
+      }
+      shiftAll(P, [0, dy, 0]);
+      if (contact && !S.drive) { // drive : déplacement piloté (course d'élan), pas de point d'appui fixe
         const now = add(P[contact.e.o], mv(F[contact.e.f], contact.local));
         const d = sub(contact.world, now);
         shiftAll(P, [d[0], 0, d[2]]);
-      }
-      // --- appuis fixés (mains / pieds)
-      const wanted = S.plant || [];
-      for (const k of Object.keys(pins)) if (!wanted.includes(k)) delete pins[k];
-      for (const eff of wanted) {
-        if (pins[eff]) continue;
-        const q = P[EFF_POINT[eff]];
-        const keepY = anim.pinAir && anim.pinAir.includes(eff); // appui sur un mur, une barre… : on garde la hauteur
-        pins[eff] = keepY ? [...q] : [q[0], surfaceAt(props, q[0], q[2]) + (eff.startsWith('hand') ? 0.032 : 0.078), q[2]];
-      }
-      const effs = Object.keys(pins);
-      if (effs.length) {
-        // le corps reste posé sur ses appuis ; on ne le déplace que si un bras / une jambe ne peut pas atteindre son appui
-        for (let it = 0; it < 4; it++) {
-          let d = [0, 0, 0], nOut = 0;
-          for (const eff of effs) {
-            const [base, , , , l1, l2] = CHAINS[eff];
-            const v = sub(pins[eff], P[base]);
-            const L = len(v), reach = l1 + l2 - 0.004;
-            if (L > reach) { d = add(d, scl(v, 1 - reach / L)); nOut++; }
-          }
-          if (!nOut) break;
-          shiftAll(P, scl(d, 1 / nOut));
-        }
-        for (const eff of effs) solveIK(P, eff, pins[eff]);
-        addMids(P, F);
-        for (let it = 0; it < 5; it++) { // une autre partie du corps s'enfonce : on remonte et on retend les bras / jambes
-          const lo2 = lowest(P, props);
-          if (lo2.cl > -0.002) break;
-          shiftAll(P, [0, -lo2.cl, 0]);
-          for (const eff of effs) solveIK(P, eff, pins[eff]);
-          addMids(P, F);
-        }
       }
       off = [P.root[0] - c.x, 0, P.root[2] - c.z];
       const lo3 = lowest(P, props);
@@ -299,13 +350,62 @@ export function bake(anim, fps = 60) {
       const world = [q[0], q[1] - lo3.e.r, q[2]];
       contact = { e: lo3.e, world, local: mtv(F[lo3.e.f], sub(world, P[lo3.e.o])) };
     }
-    clampDistal(P, props);
+    // --- appuis fixés (mains / pieds) : ils s'accrochent et se lâchent en douceur (fondu de 0,15 s), jamais de téléportation
+    const wanted = flight ? [] : (S.plant || []);
+    for (const eff of wanted) {
+      if (pins[eff] && pins[eff].on) continue;
+      if (pins[eff]) { pins[eff].on = true; continue; }
+      const q = P[EFF_POINT[eff]];
+      const keepY = anim.pinAir && anim.pinAir.includes(eff); // appui sur un mur, une barre… : on garde la hauteur
+      pins[eff] = { on: true, w: 0, pos: keepY ? [...q] : [q[0], surfaceAt(props, q[0], q[2]) + (eff.startsWith('hand') ? 0.032 : 0.078), q[2]] };
+    }
+    for (const eff of Object.keys(pins)) {
+      const pin = pins[eff];
+      if (!wanted.includes(eff)) pin.on = false;
+      pin.w = clamp(pin.w + (pin.on ? 1 / (0.15 * fps) : -1 / (0.25 * fps)), 0, 1);
+      if (!pin.on && pin.w <= 0) { delete pins[eff]; continue; }
+      const e = pin.w * pin.w * (3 - 2 * pin.w);
+      solveIK(P, eff, pinTarget(P, eff, pin.pos, e, props), F);
+    }
+    if (Object.keys(pins).length) {
+      addMids(P, F);
+      const lo2 = lowest(P, props); // un coude / un genou ne doit pas traverser le sol
+      if (lo2.cl < -0.002) {
+        shiftAll(P, [0, -lo2.cl, 0]);
+        for (const eff of Object.keys(pins)) { const pin = pins[eff], e = pin.w * pin.w * (3 - 2 * pin.w); solveIK(P, eff, pinTarget(P, eff, pin.pos, e, props), F); }
+      }
+    }
+    clampDistal(P, props, mem);
     frames.push({ t, P, head: { fwd: col(F.head, 0), up: col(F.head, 1), right: col(F.head, 2) }, c });
   }
+  smoothTips(frames, props);
   // phases (étiquettes)
   const phases = [];
   keys.forEach(k => { if (k.label) phases.push({ t: k.t, label: k.label }); });
   return { frames, fps, T, props, phases, thumb: anim.thumb };
+}
+
+/** Lissage de l'orientation des mains et des pieds (bouts des doigts, orteils, talons) sur ±3 images : plus de petits pivots brusques. */
+function smoothTips(frames, props) {
+  const W = [1, 2, 3, 4, 3, 2, 1];
+  for (const [tip, base] of [['fiR', 'wrR'], ['fiL', 'wrL'], ['toR', 'anR'], ['toL', 'anL'], ['heR', 'anR'], ['heL', 'anL']]) {
+    const off = frames.map(f => sub(f.P[tip], f.P[base]));
+    const L = off.map(len);
+    for (let i = 0; i < frames.length; i++) {
+      let acc = [0, 0, 0], ws = 0;
+      for (let k = -3; k <= 3; k++) {
+        const j = i + k;
+        if (j < 0 || j >= frames.length) continue;
+        acc = add(acc, scl(off[j], W[k + 3])); ws += W[k + 3];
+      }
+      const o = scl(norm(acc), L[i]);
+      const P = frames[i].P;
+      const q = add(P[base], o);
+      const sfc = surfaceAt(props, q[0], q[2]) + (tip.startsWith('fi') ? 0.012 : tip.startsWith('to') ? 0.016 : 0.024);
+      if (q[1] < sfc) q[1] = Math.min(P[tip][1], sfc);
+      P[tip] = q;
+    }
+  }
 }
 
 /**
@@ -320,8 +420,12 @@ export function bakeDef(def) {
     if (p.at === undefined) return p;
     let at = p.at;
     if (typeof at === 'string') { // 'plant:handL' = 1re pose de cette main ; 'land' = 1re réception ; 'fly' = 1er appel
-      const [kind, eff] = at.split(':');
-      const k = def.keys.find(q => (kind === 'plant' ? q.plant && q.plant.includes(eff) : q[kind] !== undefined && q[kind] !== false));
+      // 'land#2' = 2e réception ; 'land#-1' = dernière
+      const [kindN, eff] = at.split(':');
+      const [kind, nth = '1'] = kindN.split('#');
+      const hits = def.keys.filter(q => (kind === 'plant' ? q.plant && q.plant.includes(eff) : q[kind] !== undefined && q[kind] !== false));
+      const n = +nth;
+      const k = n < 0 ? hits[hits.length + n] : hits[n - 1];
       at = k ? k.t : 0;
     }
     const f = pre.frames[Math.min(pre.frames.length - 1, Math.round(at * pre.fps))];

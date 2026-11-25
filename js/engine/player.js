@@ -2,6 +2,9 @@
 // trajectoire du bassin, barre des phases. Un seul calcul (« cuisson ») par animation, gardé en cache.
 import { bakeDef as bake, frameAt, surfaceAt } from './skeleton.js';
 import { camera, fitCamera, drawScene, VIEWS } from './render.js';
+import { Stage3D, webglOK } from './render3d.js';
+
+const GL = typeof document !== 'undefined' && webglOK();
 
 const cache = new Map();
 export function baked(id, def) {
@@ -24,6 +27,9 @@ export class Player {
     this.yaw = VIEWS[view].yaw; this.pitch = VIEWS[view].pitch;
     this.decomp = false;
     this.trail = false;
+    this.see = true; // matériel transparent (on voit le gymnaste à travers)
+    this.hasProps = (this.b.props || []).some(p => p.k !== 'mark');
+    this.stage = GL ? new Stage3D(this.b, { suit: this.suit, accent }) : null;
     this.root = root;
     root.classList.add('player');
     root.innerHTML = `
@@ -46,6 +52,7 @@ export class Player {
         <div class="pl-opts">
           <button class="pl-toggle" data-opt="decomp" aria-pressed="false" title="Voir toutes les étapes du mouvement en même temps">Décomposer</button>
           <button class="pl-toggle" data-opt="trail" aria-pressed="false" title="Trajet du bassin">Trajet</button>
+          ${(this.b.props || []).some(p => p.k !== 'mark') ? '<button class="pl-toggle on" data-opt="see" aria-pressed="true" title="Rendre le matériel transparent ou plein">Matériel transparent</button>' : ''}
         </div>
       </div>`;
     this.cv = root.querySelector('.pl-canvas');
@@ -88,6 +95,11 @@ export class Player {
       this[b.dataset.opt] = !this[b.dataset.opt];
       b.setAttribute('aria-pressed', this[b.dataset.opt]);
       b.classList.toggle('on', this[b.dataset.opt]);
+      if (this.stage) {
+        if (b.dataset.opt === 'decomp') this.stage.setGhosts(this.decomp ? this.ghosts() : null);
+        if (b.dataset.opt === 'trail') this.stage.setTrail(this.trail ? this.b.frames.filter((_, i) => i % 3 === 0).map(f => f.P.root) : null);
+        if (b.dataset.opt === 'see') this.stage.setTransparent(this.see);
+      }
       this.draw();
     }));
     // barre de temps
@@ -141,7 +153,7 @@ export class Player {
 
   resize() {
     const r = this.cv.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(10, r.width); this.h = Math.max(10, r.height);
     this.cv.width = Math.round(this.w * dpr); this.cv.height = Math.round(this.h * dpr);
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -185,11 +197,15 @@ export class Player {
   draw() {
     if (!this.cam) return;
     const g = this.g, b = this.b;
-    g.clearRect(0, 0, this.w, this.h);
     const t = Math.min(this.t, b.T);
     const fr = frameAt(b, t);
-    const trail = this.trail ? b.frames.filter((_, i) => i % 3 === 0).map(f => f.P.root) : null;
-    drawScene(g, this.cam, fr, b, { accent: this.accent, look: { suit: this.suit }, ghosts: this.decomp ? this.ghosts() : null, trail, floor: this.floor, surface: surfaceAt });
+    if (this.stage) {
+      this.stage.draw(g, this.w, this.h, this.dpr, fr, { yaw: this.yaw, pitch: this.pitch, center: this.center });
+    } else {
+      g.clearRect(0, 0, this.w, this.h);
+      const trail = this.trail ? b.frames.filter((_, i) => i % 3 === 0).map(f => f.P.root) : null;
+      drawScene(g, this.cam, fr, b, { accent: this.accent, look: { suit: this.suit }, ghosts: this.decomp ? this.ghosts() : null, trail, floor: this.floor, surface: surfaceAt });
+    }
     // phase en cours
     let pi = -1;
     b.phases.forEach((p, i) => { if (t >= p.t - 1e-6) pi = i; });
@@ -210,7 +226,7 @@ export class Player {
     this.draw();
   }
 
-  destroy() { cancelAnimationFrame(this.raf); this.ro.disconnect(); this.io.disconnect(); }
+  destroy() { cancelAnimationFrame(this.raf); this.ro.disconnect(); this.io.disconnect(); if (this.stage) this.stage.dispose(); }
 }
 
 /** Petite image fixe (vignette) d'une animation, à l'instant le plus parlant. */
@@ -225,8 +241,16 @@ export function thumbnail(canvas, id, def, { accent, at, view = 'trois' } = {}) 
   const v = VIEWS[view];
   let x0 = Infinity, x1 = -Infinity;
   for (const f of b.frames) { x0 = Math.min(x0, f.P.root[0]); x1 = Math.max(x1, f.P.root[0]); }
-  const cam = fitCamera(camera(v.yaw, v.pitch, [(x0 + x1) / 2, 0.8, 0]), b, w, h, 0.04);
   const tt = at !== undefined ? at : b.thumb !== undefined ? b.thumb : b.T * 0.5;
   const ghosts = [0.15, 0.4, 0.65, 0.9].map(u => frameAt(b, b.T * u));
+  const center = [(x0 + x1) / 2, 0.8, 0];
+  if (GL) {
+    const st = new Stage3D(b, { suit: accent, accent });
+    st.setGhosts(ghosts);
+    st.draw(g, w, h, dpr, frameAt(b, tt), { yaw: v.yaw, pitch: v.pitch, center, pad: 0.04 });
+    st.dispose();
+    return;
+  }
+  const cam = fitCamera(camera(v.yaw, v.pitch, center), b, w, h, 0.04);
   drawScene(g, cam, frameAt(b, tt), b, { accent, look: { suit: accent }, ghosts, floor: [x0 - 1.2, x1 + 1.2], surface: surfaceAt });
 }
