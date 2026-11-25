@@ -241,6 +241,11 @@ export function solveIK(P, eff, target, F) {
   P[b] = B; P[c] = C;
 }
 const EFF_POINT = { handR: 'wrR', handL: 'wrL', footR: 'anR', footL: 'anL' };
+const LOCKABLE = ['footR', 'footL', 'handR', 'handL'];
+const LOCK_TIPS = {
+  footR: [['toR', 0.016], ['heR', 0.024]], footL: [['toL', 0.016], ['heL', 0.024]],
+  handR: [['fiR', 0.012], ['wrR', 0.028]], handL: [['fiL', 0.012], ['wrL', 0.028]],
+};
 /** Cible intermédiaire entre la main / le pied « libre » et l'appui : on mélange la direction et la distance depuis l'épaule / la hanche
  * (et non les positions), pour que le membre ne se replie pas brutalement en chemin. */
 function pinTarget(P, eff, pos, e, props) {
@@ -276,11 +281,12 @@ export function bake(anim, fps = 60) {
   for (const ch of CHANNELS) splines[ch] = monotone(ts, full.map(f => f[ch]));
   const chAt = t => { const c = {}; for (const ch of CHANNELS) c[ch] = splines[ch](t); return c; };
   // états discrets (appuis, vols) par intervalle de clés
-  let plant = [], drive = false;
+  let plant = [], drive = false, slide = false;
   const seg = keys.map((k, i) => {
     if (k.plant) plant = k.plant;
     if (k.drive !== undefined) drive = k.drive;
-    return { plant, drive, fly: k.fly, flyTo: k.fly !== undefined ? keys.findIndex((q, j) => j > i && q.land) : -1 };
+    if (k.slide !== undefined) slide = k.slide;
+    return { plant, drive, slide, fly: k.fly, flyTo: k.fly !== undefined ? keys.findIndex((q, j) => j > i && q.land) : -1 };
   });
   // un vol dure de la clé d'appel jusqu'à la clé de réception, même s'il y a des clés entre les deux
   seg.forEach((s, i) => { if (s.fly !== undefined && s.flyTo > i) for (let k = i; k < s.flyTo; k++) seg[k].fl = i; });
@@ -294,6 +300,8 @@ export function bake(anim, fps = 60) {
   const mem = {}; // directions des mains / pieds à l'image précédente
   const fall = { vy: 0 }; // vitesse verticale (chute libre quand l'appui disparaît)
   let touched = null; // vol déjà terminé par un contact anticipé
+  const locks = {}; // appuis verrouillés automatiquement
+  const lastAnc = {};
   for (let f = 0; f < n; f++) {
     const t = Math.min(T, f / fps);
     let ki = 0;
@@ -340,7 +348,14 @@ export function bake(anim, fps = 60) {
       const lo = lowest(P, props);
       // posé sur le plus bas… mais si l'appui disparaît (bord d'un bloc), le corps TOMBE avec la gravité au lieu de descendre d'un coup
       let dy = -lo.cl;
-      if (fall && frames.length) {
+      const supported = Object.keys(pins).length > 0 || Object.values(locks).some(l => l.on);
+      if (supported && frames.length) {
+        // soutenu par les mains / les pieds : on descend vite mais sans chute libre ni saut
+        const yPrev = frames[frames.length - 1].P.root[1];
+        const yTarget = P.root[1] + dy;
+        if (yTarget < yPrev - 3.5 / fps) dy = yPrev - 3.5 / fps - P.root[1];
+        fall.vy = 0;
+      } else if (fall && frames.length) {
         const yPrev = frames[frames.length - 1].P.root[1];
         const yTarget = P.root[1] + dy;
         const dt = 1 / fps;
@@ -384,6 +399,44 @@ export function bake(anim, fps = 60) {
         shiftAll(P, [0, -lo2.cl, 0]);
         for (const eff of Object.keys(pins)) { const pin = pins[eff], e = pin.w * pin.w * (3 - 2 * pin.w); solveIK(P, eff, pinTarget(P, eff, pin.pos, e, props), F); }
       }
+    }
+    // --- verrouillage automatique : un pied / une main qui touche le sol y reste (pied : sur sa plante, il peut pivoter dessus)
+    //     tant que la pose ne le soulève pas ; s'il doit se déplacer de plus de 6 cm, il fait un petit pas (levé, reposé)
+    //     au lieu de glisser. slide: true dans une clé = glissement voulu (ex. descente en grand écart).
+    for (const eff of LOCKABLE) {
+      if (pins[eff]) { delete locks[eff]; continue; }
+      const foot = eff.startsWith('foot');
+      const S2 = eff.endsWith('R') ? 'R' : 'L';
+      const anchorK = foot ? 'to' + S2 : 'wr' + S2;
+      const cl = Math.min(...LOCK_TIPS[eff].map(([k, r]) => clearance(P[k], r, props)));
+      const anc = P[anchorK];
+      let L = locks[eff];
+      const prevA = lastAnc[eff];
+      const speed = prevA ? Math.hypot(anc[0] - prevA[0], anc[2] - prevA[2]) * fps : 0;
+      lastAnc[eff] = [...anc];
+      if (!L) {
+        // on ne verrouille qu'un appui posé ET immobile (sinon un pied qui arrive en glissant déclencherait un pas inutile)
+        if (!inFlight && !S.slide && cl < 0.012 && speed < 0.35) locks[eff] = L = { pos: [...anc], w: 1, on: true };
+        else continue;
+      }
+      const drift = Math.hypot(anc[0] - L.pos[0], anc[2] - L.pos[2]);
+      if (L.on && !L.step && !inFlight && !S.slide && cl <= 0.018 && drift > 0.07 && speed < 0.6) L.step = { from: [...L.pos], u: 0 }; // petit pas
+      if (L.on && (inFlight || S.slide || cl > 0.018 || drift > 0.2)) { L.on = false; if (L.step) { L.pos = L.last || L.pos; L.step = null; } }
+      let goal = L.pos;
+      if (L.step) {
+        L.step.u = Math.min(1, L.step.u + 1 / (0.2 * fps));
+        const u = L.step.u, k = u * u * (3 - 2 * u);
+        goal = lerp(L.step.from, anc, k);
+        goal = [goal[0], Math.max(goal[1], anc[1]) + 0.07 * Math.sin(Math.PI * u), goal[2]];
+        if (u >= 1) { L.pos = [...anc]; L.step = null; goal = L.pos; }
+        L.last = goal;
+      }
+      if (!L.on) { L.w -= 1 / (0.09 * fps); if (L.w <= 0) { delete locks[eff]; continue; } }
+      const e = L.w * L.w * (3 - 2 * L.w);
+      const off2 = sub(P[EFF_POINT[eff]], anc); // de l'ancrage (plante / poignet) au point piloté (cheville / poignet)
+      const tgt = add(goal, off2);
+      const pt = P[EFF_POINT[eff]];
+      solveIK(P, eff, lerp(pt, tgt, e), F);
     }
     clampDistal(P, props, mem);
     frames.push({ t, P, head: { fwd: col(F.head, 0), up: col(F.head, 1), right: col(F.head, 2) }, c });

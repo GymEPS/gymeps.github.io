@@ -1,5 +1,5 @@
 // Famille des RENVERSEMENTS : placement du dos, trépied, ATR et ses variantes.
-import { KW, chain, hold } from './pose.js';
+import { K, KW, chain, hold } from './pose.js';
 import { ST, ST_UP, HANDS, ALL4, up, toLunge, lungeToATR, atrToLunge, finish } from './blocks.js';
 
 const SQUAT = { ...ST, lean: 22, T: 42, th: 82, sn: -32, ar: 55, fa: 60, ff: 1 };
@@ -29,7 +29,7 @@ export const placementDos = () => ({
 export const trepied = () => ({
   keys: chain(
     [KW(0, SQUAT, { label: 'Départ accroupi' }),
-      KW(0.5, { ...HANDS_DOWN, lean: 52, T: 96, ar: 40, fa: 40, nk: 20 }, { label: 'Mains et front au sol : un triangle', plant: ALL4 }),
+      KW(0.5, { ...HANDS_DOWN, lean: 52, T: 96, ar: 40, fa: 40, nk: 20 }, { label: 'Mains et front au sol : un triangle', plant: HANDS }),
       KW(1.0, { lean: 120, T: 150, th: 40, sn: -110, ar: -95, fa: 0, an: 30, ff: 0.2, nk: 0 }, { plant: HANDS }),
       KW(1.5, { lean: 182, T: 182, th: -45, sn: -175, ar: -112, fa: 0, an: 45, ff: 0, nk: 0 }, { label: 'Monter les genoux groupés' }),
       KW(2.1, { lean: 182, T: 182, th: -180, sn: -180, ar: -112, fa: 0, an: 55, nk: 0 }, { label: 'Tendre les jambes : corps aligné' })],
@@ -98,11 +98,11 @@ export const atrHealy = () => ({
   keys: chain(
     toLunge(), lungeToATR(),
     [KW(0, ATR, { label: 'ATR' }),
-      KW(0.4, { ...ATR, yaw: 60, lean: 190, T: 190, th: -190, sn: -190 }, { plant: ['handL'], label: 'Pivoter en avant sur un bras, corps tendu' }),
-      KW(0.8, { ...ATR, yaw: 150, lean: 222, T: 222, th: -222, sn: -222, arR: 40, faR: 40 }),
-      KW(1.15, { lean: 252, T: 252, th: -235, sn: -235, yaw: 180, ar: -30, fa: -30, an: 45, ff: 0, hf: 1, wr: 85, nk: 0 }, { plant: HANDS, label: 'Arriver en appui dorsal, bras tendus' }),
-      KW(1.55, { lean: 255, T: 255, th: -232, sn: -232, yaw: 180, ar: -32, fa: -32, an: 30, ff: 0.5 })],
-    hold([KW(0, {})], 0.6),
+      K(0.45, { lean: 186, sp: 0, hp: [0, 0, 0], kn: 0, yaw: 90, sh: [180, 8, 0], shR: [180, 30, 0], el: 0, hf: 1, an: 50, ff: 0 }, { plant: ['handL'], label: 'Pivoter en avant sur un bras, corps tendu' }),
+      K(0.85, { lean: 176, yaw: 180, sh: [176, 8, 0], hR: 1 }, { plant: HANDS }),
+      K(1.35, { lean: 120, yaw: 180, sp: 0, hp: [8, 0, 0], sh: [-40, 8, 0], el: 0, nk: 10, an: 40 }, { label: 'Descendre corps tendu' }),
+      K(1.75, { lean: 74, yaw: 180, sp: 0, hp: [0, 0, 0], sh: [-74, 6, 0], el: 0, hf: 1, an: 20, ff: 0.3, nk: 10 }, { label: 'Arriver en appui dorsal, bras tendus' })],
+    hold([K(0, {})], 0.7),
   ),
   thumb: 1.9,
 });

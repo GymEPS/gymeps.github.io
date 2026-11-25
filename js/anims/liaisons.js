@@ -71,12 +71,12 @@ export const ressortTendu = () => ({
 /** Demi-tour (ou tour complet) en appui : appui facial → appui dorsal (→ appui facial). */
 export const tourAppui = (deg = 180) => {
   const plank = { lean: 74, sp: 0, nk: -10, hp: [0, 0, 0], kn: 0, an: 0, ff: 0, sh: [74, 6, 0], el: 0, hf: 1, wr: 85 };
-  const k = [K(0, { ...plank, yaw: 0 }, { label: 'Appui facial : corps tendu, bras tendus', plant: ALL4 })];
+  const k = [K(0, { ...plank, yaw: 0 }, { label: 'Appui facial : corps tendu, bras tendus', plant: HANDS, slide: true })];
   const steps = [
-    [90, { shR: [0, 88, 0], shL: [0, 100, 0], hR: 1, hL: 0 }, ['handR', ...ALL4.slice(2)], 'Lever une main et tourner, corps gainé'],
-    [180, { sh: [-74, 6, 0], hf: 1, nk: 10 }, ALL4, 'Appui dorsal : bras tendus, bassin haut'],
-    [270, { shL: [0, 88, 0], shR: [0, 100, 0], hL: 1, hR: 0, nk: -10 }, ['handL', ...ALL4.slice(2)], 'Tourner sur l’autre main'],
-    [360, { sh: [74, 6, 0], hf: 1, nk: -10 }, ALL4, 'Retour en appui facial'],
+    [90, { shR: [0, 88, 0], shL: [0, 100, 0], hR: 1, hL: 0 }, ['handR'], 'Lever une main et tourner, corps gainé'],
+    [180, { sh: [-74, 6, 0], hf: 1, nk: 10 }, HANDS, 'Appui dorsal : bras tendus, bassin haut'],
+    [270, { shL: [0, 88, 0], shR: [0, 100, 0], hL: 1, hR: 0, nk: -10 }, ['handL'], 'Tourner sur l’autre main'],
+    [360, { sh: [74, 6, 0], hf: 1, nk: -10 }, HANDS, 'Retour en appui facial'],
   ];
   let t = 0.3;
   for (const [y, p, plant, label] of steps) {
@@ -132,17 +132,16 @@ export const cerclesJambe = (n = 2) => {
 
 /** Cercle des jambes serrées (ou écartées) en appui sur les mains. */
 export const cercleJambes = () => {
-  const sit = { lean: -12, T: 4, th: 92, sn: 92, hpa: 32, an: 55, ff: 0, ar: -6, fa: -6, sha: 10, hf: 1, wr: 80, nk: 5 };
-  const k = [
-    KW(0, { ...sit, th: 90, sn: 90, ar: 0, fa: 0, yaw: 0 }, { label: 'Assis·e jambes tendues écartées, mains à plat', plant: HANDS }),
-    KW(0.45, { ...sit, yaw: 0 }, { label: 'Décoller les fesses, bras tendus' }),
-  ];
-  const seq = [[90, ['handR']], [180, HANDS], [270, ['handL']], [360, HANDS]];
-  let t = 0.45;
-  for (const [y, plant] of seq) {
-    t += 0.42;
-    k.push(KW(t, { ...sit, yaw: y }, { plant, label: y === 90 ? 'Les jambes font un cercle complet autour des mains' : undefined }));
-  }
-  k.push(KW(t + 0.4, { ...sit, th: 90, sn: 90, ar: 0, fa: 0, yaw: 360 }, { label: 'Se reposer' }));
-  return { keys: k, thumb: 1.1 };
+  const sit = { lean: 0, T: -22, th: 104, sn: 104, hpa: 34, an: 55, ff: 0, ar: 70, fa: 70, sha: 55, hf: 0, nk: 8 }; // bassin droit : on tourne autour de la verticale
+  return {
+    keys: [
+      KW(0, { ...sit, th: 90, sn: 90, T: -5, ar: 10, fa: 10, sha: 20, yaw: 0 }, { label: 'Assis·e, jambes tendues écartées' }),
+      KW(0.5, { ...sit, yaw: 0 }, { label: 'Décoller les jambes tendues, buste droit' }),
+      KW(1.0, { ...sit, yaw: 120 }, { label: 'Les jambes font un cercle complet : pivoter sur les fesses' }),
+      KW(1.5, { ...sit, yaw: 240 }),
+      KW(2.0, { ...sit, yaw: 360 }),
+      KW(2.5, { ...sit, th: 90, sn: 90, T: -5, ar: 10, fa: 10, sha: 20, yaw: 360 }, { label: 'Reposer les jambes' }),
+    ],
+    thumb: 1.2,
+  };
 };
