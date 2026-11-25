@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<title>Gym EPS – contrôle des animations</title>
+<style>
+  body { background: #0b1020; color: #cbd5e1; font: 12px system-ui; margin: 6px; }
+  .row { margin-bottom: 6px; } .row b { color: #fff; }
+  canvas { display: block; width: 100%; background: #0d1426; }
+</style>
+<div id="out"></div>
+<script type="module">
+  import { animDef, ANIM_IDS } from './js/anims/index.js';
+  import { bakeDef as bake, frameAt, surfaceAt } from './js/engine/skeleton.js';
+  import { camera, fitCamera, drawScene, VIEWS } from './js/engine/render.js';
+  const q = new URLSearchParams(location.search);
+  const ids = (q.get('q') || ANIM_IDS.join(',')).split(',');
+  const n = +(q.get('n') || 9);
+  const view = VIEWS[q.get('v') || 'profil'];
+  const H = +(q.get('h') || 150);
+  try {
+  for (const id of ids) {
+    const def = animDef(id);
+    const row = document.createElement('div'); row.className = 'row';
+    if (!def) { row.textContent = id + ' : inconnue'; out.append(row); continue; }
+    let b;
+    try { b = bake(def); } catch (e) { row.textContent = id + ' : ERREUR ' + e.message; out.append(row); console.error(e); continue; }
+    row.innerHTML = `<b>${id}</b> ${b.T.toFixed(2)} s · ${b.phases.map(p => p.label).join(' → ')}`;
+    const cv = document.createElement('canvas');
+    row.append(cv); out.append(row);
+    const W = +(q.get('w') || 1240);
+    const cols = +(q.get('c') || n);
+    const rows = Math.ceil(n / cols);
+    cv.width = W; cv.height = H * rows;
+    const g = cv.getContext('2d');
+    const cw = W / cols;
+    for (let i = 0; i < n; i++) {
+      const t = q.get('a') !== null ? (+q.get('a') + (+q.get('b') - +q.get('a')) * i / (n - 1)) : b.T * i / (n - 1);
+      const fr = frameAt(b, t);
+      const c0 = camera(view.yaw, view.pitch, [fr.P.root[0], 0, 0]);
+      c0.scale = H / 2.4; c0.cx = cw / 2; c0.cy = H * 0.92;
+      g.save(); g.translate((i % cols) * cw, Math.floor(i / cols) * H); g.beginPath(); g.rect(0, 0, cw, H); g.clip();
+      drawScene(g, c0, fr, b, { floor: [fr.P.root[0] - 2, fr.P.root[0] + 2], surface: surfaceAt });
+      g.fillStyle = '#94a3b8'; g.fillText(t.toFixed(2), 3, 11);
+      g.restore();
+    }
+  }
+  } catch (e) { out.insertAdjacentHTML('beforeend', '<pre style="color:#f87171">' + e.stack + '</pre>'); }
+</script>
+</html>

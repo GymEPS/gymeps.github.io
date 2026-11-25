@@ -1,0 +1,310 @@
+// Gym EPS : navigation (adresses en #/…), pages, recherche.
+import { FAMILLES, NIVEAUX } from './data/familles.js';
+import { THEMES, SECURITE, VALIDATION } from './data/progressions.js';
+import { animDef } from './anims/index.js';
+import { Player, thumbnail } from './engine/player.js';
+
+const app = document.getElementById('app');
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const LEVEL_COLORS = { A: '#22c55e', B: '#3b82f6', C: '#f59e0b', D: '#ef4444', E: '#a855f7', F: '#d946ef', G: '#ec4899', H: '#f43f5e' };
+const lvlTag = n => `<span class="tag" style="background:${LEVEL_COLORS[n]}">${n}</span>`;
+const ELEMENTS = FAMILLES.flatMap(f => f.elements.map(e => ({ ...e, fam: f })));
+const elById = id => ELEMENTS.find(e => e.id === id);
+const themeById = id => THEMES.find(t => t.id === id);
+
+let players = [];
+let thumbsIO = null;
+function cleanup() {
+  players.forEach(p => p.destroy());
+  players = [];
+  if (thumbsIO) thumbsIO.disconnect();
+  thumbsIO = null;
+}
+function setAccent(c) {
+  document.documentElement.style.setProperty('--fc', c || '#22d3ee');
+}
+function mountPlayer(el, animId, accent, opts = {}) {
+  const def = animDef(animId);
+  if (!def) { el.innerHTML = '<p class="muted">Animation à venir.</p>'; return null; }
+  const p = new Player(el, { id: animId, def, accent, ...opts });
+  players.push(p);
+  return p;
+}
+/** Vignettes dessinées seulement quand elles arrivent à l'écran. */
+function lazyThumbs(root) {
+  thumbsIO = new IntersectionObserver(entries => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const c = en.target;
+      thumbsIO.unobserve(c);
+      const id = c.dataset.anim;
+      const def = animDef(id);
+      if (!def) continue;
+      const run = () => thumbnail(c, id, def, { accent: c.dataset.accent, view: c.dataset.view || 'trois' });
+      (window.requestIdleCallback || (f => setTimeout(f, 16)))(run);
+    }
+  }, { rootMargin: '200px' });
+  root.querySelectorAll('canvas[data-anim]').forEach(c => thumbsIO.observe(c));
+}
+
+// ------------------------------------------------------------------ pages
+function pageHome() {
+  setAccent('#22d3ee');
+  const nEl = ELEMENTS.length;
+  const nLv = THEMES.reduce((s, t) => s + t.niveaux.length, 0);
+  app.innerHTML = `
+    <section class="hero page-enter">
+      <div>
+        <h1>Gym EPS <span>au sol</span></h1>
+        <p>Toutes les figures de gymnastique au sol, rangées par famille et par difficulté. Touche une figure pour la voir bouger en 3D, sous tous les angles, au ralenti si tu veux.</p>
+        <div class="hero-stats">
+          <div><b>6</b>familles</div>
+          <div><b>${nEl}</b>figures</div>
+          <div><b>A→D</b>niveaux de difficulté</div>
+          <div><b>${nLv}</b>étapes de progression</div>
+        </div>
+      </div>
+      <div class="hero-demo"><a class="hero-caption" href="#/element/rondade">Rondade ›</a><div id="demo"></div></div>
+    </section>
+    <div class="section-title"><h2>Les 6 familles</h2><p>Chaque famille est classée de A (facile) à D (très difficile).</p></div>
+    <div class="grid fam-grid">
+      ${FAMILLES.map(f => {
+        const counts = Object.keys(NIVEAUX).map(n => [n, f.elements.filter(e => e.niv === n).length]).filter(x => x[1]);
+        const show = f.elements.find(e => ['atr-tenu', 'saut-carpe-ecart', 'planche', 'roulade-avant', 'tour-pied', 'roue'].includes(e.id)) || f.elements[0];
+        return `<a class="fam-card" href="#/famille/${f.id}" style="--c:${f.couleur}">
+          <div><h3>${esc(f.court || f.titre)}</h3><p>${esc(f.resume)}</p>
+          <div class="lvl-row">${counts.map(([n, c]) => `<span class="lvl-pill"><i style="background:${LEVEL_COLORS[n]}">${n}</i>${c}</span>`).join('')}</div></div>
+          <canvas data-anim="${show.anim}" data-accent="${f.couleur}" aria-hidden="true"></canvas>
+        </a>`;
+      }).join('')}
+    </div>
+    <div class="section-title"><h2>Progressions pas à pas</h2><p>Des ateliers du plus simple au plus dur, avec le matériel et des solutions si tu bloques.</p></div>
+    <div class="grid theme-grid">${THEMES.map(themeCard).join('')}</div>
+    <div class="section-title"><h2>Avant de commencer</h2></div>
+    <div class="grid info-grid">
+      <a class="info-card" href="#/securite"><span class="ico">🛡️</span><div><h3>Consignes de sécurité</h3><p>Matériel, espace de travail, parade et aide.</p></div></a>
+      <a class="info-card" href="#/securite#validation"><span class="ico">✅</span><div><h3>Valider un niveau</h3><p>${esc(VALIDATION.devise)}.</p></div></a>
+    </div>`;
+  mountPlayer($('#demo'), 'rondade', '#22d3ee', { view: 'trois', compact: true });
+  lazyThumbs(app);
+}
+
+function themeCard(t) {
+  return `<a class="theme-card" href="#/progression/${t.id}" style="--c:${t.couleur}">
+    <small>${t.niveaux.length} niveaux · ${t.niveaux[0].niv} à ${t.niveaux[t.niveaux.length - 1].niv}</small>
+    <h3>${esc(t.titre)}</h3><span class="muted">${esc(t.element)}</span>
+    <div class="steps">${t.niveaux.map((_, i) => `<span style="--i:${i}"></span>`).join('')}</div></a>`;
+}
+
+function pageFamille(id, filter) {
+  const f = FAMILLES.find(x => x.id === id);
+  if (!f) return pageNotFound();
+  setAccent(f.couleur);
+  const levels = Object.keys(NIVEAUX).filter(n => f.elements.some(e => e.niv === n));
+  const shown = filter && levels.includes(filter) ? [filter] : levels;
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>${esc(f.titre)}</span></nav>
+    <div class="page-head page-enter"><div><h1>Famille des <em>${esc(f.titre)}</em></h1><p>${esc(f.resume)} Touche une figure pour voir l’animation.</p></div></div>
+    <div class="filters" role="group" aria-label="Filtrer par difficulté">
+      <a class="chip ${!filter ? 'on' : ''}" href="#/famille/${f.id}">Toutes</a>
+      ${levels.map(n => `<a class="chip ${filter === n ? 'on' : ''}" href="#/famille/${f.id}/${n}"><i style="background:${LEVEL_COLORS[n]}">${n}</i>${NIVEAUX[n].nom}</a>`).join('')}
+    </div>
+    ${shown.map(n => `
+      <section class="level-block page-enter">
+        <div class="level-head"><span class="level-badge" style="background:${LEVEL_COLORS[n]}">${n}</span><div><h2>Difficulté ${n}</h2><span>${NIVEAUX[n].nom}</span></div></div>
+        <div class="grid el-grid">${f.elements.filter(e => e.niv === n).map(e => elCard(e, f)).join('')}</div>
+      </section>`).join('')}`;
+  lazyThumbs(app);
+}
+
+function elCard(e, f) {
+  return `<a class="el-card" href="#/element/${e.id}">
+    ${e.prof ? '<span class="prof-flag">Avec le prof</span>' : ''}
+    <canvas data-anim="${e.anim}" data-accent="${f.couleur}" aria-hidden="true"></canvas>
+    <span class="play-hint" aria-hidden="true"><svg viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12Z"/></svg></span>
+    <div class="el-body"><h3>${esc(e.nom)}</h3>${lvlTag(e.niv)}</div></a>`;
+}
+
+function pageElement(id) {
+  const e = elById(id);
+  if (!e) return pageNotFound();
+  const f = e.fam;
+  setAccent(f.couleur);
+  const list = f.elements;
+  const i = list.findIndex(x => x.id === id);
+  const prev = list[i - 1], next = list[i + 1];
+  const th = e.lien && themeById(e.lien[0]);
+  const lv = th && th.niveaux.find(n => n.niv === e.lien[1]);
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <a href="#/famille/${f.id}">${esc(f.titre)}</a> › <span>${esc(e.nom)}</span></nav>
+    <div class="page-head page-enter"><div><h1>${esc(e.nom)}</h1><p>Famille des ${esc(f.titre.toLowerCase())} · difficulté ${e.niv} (${NIVEAUX[e.niv].nom.toLowerCase()})</p></div><span class="level-badge" style="background:${LEVEL_COLORS[e.niv]}">${e.niv}</span></div>
+    <div class="el-layout page-enter">
+      <div>
+        ${e.variantes ? `<div class="variants">${e.variantes.map((v, k) => `<button class="chip ${k === 0 ? 'on' : ''}" data-variant="${v.anim}">${esc(v.nom)}</button>`).join('')}</div>` : ''}
+        <div id="player"></div>
+        ${e.prof || lv?.parade ? `<div class="warn">⚠️ Élément à travailler uniquement avec le professeur et une parade.</div>` : ''}
+      </div>
+      <aside>
+        <div class="panel"><h2>Critères de réalisation</h2><ul class="checks">${e.criteres.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>
+        <div class="panel"><h2>Les étapes du mouvement</h2><ol class="phase-list" id="phases"></ol></div>
+        ${lv ? `<div class="panel"><h2>Pour t’entraîner</h2>
+          <a class="link-card" href="#/progression/${th.id}/${lv.niv}"><span class="level-badge" style="background:${LEVEL_COLORS[lv.niv]}">${lv.niv}</span><div><b>${esc(lv.nom)}</b><span>Progression « ${esc(th.titre)} » : consignes, matériel, aides</span></div><span class="arrow">›</span></a></div>` : ''}
+      </aside>
+    </div>
+    <nav class="pager">
+      ${prev ? `<a href="#/element/${prev.id}"><small>‹ Précédent</small>${esc(prev.nom)}</a>` : '<span></span>'}
+      ${next ? `<a class="next" href="#/element/${next.id}"><small>Suivant ›</small>${esc(next.nom)}</a>` : '<span></span>'}
+    </nav>`;
+  const holder = $('#player');
+  const phasesEl = $('#phases');
+  const load = animId => {
+    players.forEach(p => p.destroy()); players = [];
+    holder.innerHTML = '';
+    const p = mountPlayer(holder, animId, f.couleur);
+    if (!p) return;
+    phasesEl.innerHTML = p.b.phases.map((ph, k) => `<li><button data-i="${k}">${esc(ph.label)}</button></li>`).join('');
+    phasesEl.querySelectorAll('button').forEach(b => (b.onclick = () => p.seek(p.b.phases[+b.dataset.i].t + 0.001, true)));
+    p.onPhase = k => phasesEl.querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === k));
+  };
+  load(e.anim);
+  app.querySelectorAll('[data-variant]').forEach(b => (b.onclick = () => {
+    app.querySelectorAll('[data-variant]').forEach(x => x.classList.toggle('on', x === b));
+    load(b.dataset.variant);
+  }));
+}
+
+function pageProgressions() {
+  setAccent('#22d3ee');
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Progressions</span></nav>
+    <div class="page-head page-enter"><div><h1>Progressions <em>pas à pas</em></h1><p>Sept thèmes de travail, du niveau A au niveau le plus haut. Valide chaque niveau avant de passer au suivant.</p></div></div>
+    <div class="grid theme-grid page-enter">${THEMES.map(themeCard).join('')}</div>`;
+}
+
+function pageProgression(id, openLv) {
+  const t = themeById(id);
+  if (!t) return pageNotFound();
+  setAccent(t.couleur);
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <a href="#/progressions">Progressions</a> › <span>${esc(t.titre)}</span></nav>
+    <div class="page-head page-enter"><div><h1>${esc(t.titre)}</h1><p>${esc(t.element)} · ${t.niveaux.length} niveaux. Ouvre un niveau pour voir l’animation, les consignes et le matériel.</p></div></div>
+    <div class="ladder page-enter">${t.niveaux.map((n, k) => `
+      <details class="step" id="niv-${n.niv}" data-k="${k}" style="--lc:${LEVEL_COLORS[n.niv]}" ${n.niv === openLv ? 'open' : ''}>
+        <summary><span class="level-badge">${n.niv}</span><div><h3>${esc(n.nom)}</h3><p>${esc(n.criteres.join(' · '))}</p></div><span class="chev" aria-hidden="true"></span></summary>
+        <div class="step-body"></div>
+      </details>`).join('')}</div>
+    <p class="muted" style="margin-top:18px">Seul le professeur valide un niveau : l’élément doit être réussi du premier coup, en respectant les critères, avec une réception maîtrisée.</p>`;
+  app.querySelectorAll('details.step').forEach(d => {
+    const fill = () => {
+      const body = d.querySelector('.step-body');
+      if (d.open && !body.dataset.done) {
+        body.dataset.done = '1';
+        const n = t.niveaux[+d.dataset.k];
+        body.innerHTML = `
+          <div><div class="pl-holder"></div>${n.parade ? '<div class="warn">⚠️ Toujours avec une parade et le professeur.</div>' : ''}</div>
+          <div>
+            <h4>Critères de réussite</h4><ul class="checks">${n.criteres.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
+            <h4 style="margin-top:14px">Consignes</h4><ol>${n.consignes.map(c => `<li>${esc(c)}</li>`).join('')}</ol>
+            <h4 style="margin-top:14px">Matériel</h4><div class="mat">${n.materiel.map(m => `<span>${esc(m)}</span>`).join('')}</div>
+          </div>
+          ${n.remediations.length ? `<div class="reme"><h4>Tu bloques ? Essaie d’abord :</h4>${n.remediations.map((r, j) => `
+            <details data-j="${j}"><summary>💡 ${esc(r.nom)} <small>${r.materiel.slice(0, 2).map(esc).join(', ')}</small></summary><div class="reme-body"></div></details>`).join('')}</div>` : ''}`;
+        mountPlayer(body.querySelector('.pl-holder'), n.anim, LEVEL_COLORS[n.niv], { compact: true });
+        body.querySelectorAll('.reme details').forEach(rd => rd.addEventListener('toggle', () => {
+          const rb = rd.querySelector('.reme-body');
+          if (!rd.open || rb.dataset.done) return;
+          rb.dataset.done = '1';
+          const r = n.remediations[+rd.dataset.j];
+          rb.innerHTML = `<div class="pl-holder"></div><div>
+            <h4>${r.seulementDiff ? 'Comme le niveau, mais :' : 'Consignes'}</h4><ol>${r.consignes.map(c => `<li>${esc(c)}</li>`).join('')}</ol>
+            <h4 style="margin-top:12px">Matériel</h4><div class="mat">${r.materiel.map(m => `<span>${esc(m)}</span>`).join('')}</div></div>`;
+          mountPlayer(rb.querySelector('.pl-holder'), r.anim, LEVEL_COLORS[n.niv], { compact: true });
+        }));
+      }
+    };
+    d.addEventListener('toggle', fill);
+    fill();
+  });
+  if (openLv) setTimeout(() => $('#niv-' + openLv)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+
+function pageSecurite() {
+  setAccent('#22c55e');
+  const S = SECURITE, V = VALIDATION;
+  const list = a => (a || []).map(x => `<li>${esc(x)}</li>`).join('');
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Sécurité et validation</span></nav>
+    <div class="page-head page-enter"><div><h1>Sécurité <em>d’abord</em></h1><p>À relire avant chaque séance.</p></div></div>
+    <div class="rules page-enter">
+      <div class="panel"><h2>Matériel et espace de travail</h2><ul class="checks">${list(S.materiel)}</ul></div>
+      <div class="panel"><h2>Ce que je dis, ce que je fais</h2><ul class="say">${list(S.regles)}</ul></div>
+      <div class="panel"><h2>Parade et aide</h2><p><b>Parade :</b> ${esc(S.parade)}</p><p><b>Aide :</b> ${esc(S.aide)}</p><ul class="checks">${list(S.criteresParade)}</ul></div>
+      <div class="panel"><h2>Interdit</h2><ul class="checks">${list(S.interdits)}</ul></div>
+    </div>
+    <div class="section-title" id="validation"><h2>Valider un niveau</h2></div>
+    <div class="rules">
+      <div class="panel"><p class="quote">« ${esc(V.devise)} »</p><p class="muted">${esc(V.niveaux)}</p></div>
+      <div class="panel"><h2>Pour valider</h2><ul class="checks">${list(V.criteres)}<li>${esc(V.seulProf)}</li></ul></div>
+    </div>`;
+  if (location.hash.includes('#validation')) setTimeout(() => $('#validation')?.scrollIntoView(), 50);
+}
+
+function pageNotFound() {
+  setAccent('#22d3ee');
+  app.innerHTML = `<div class="page-head" style="margin-top:30px"><div><h1>Oups</h1><p>Cette page n’existe pas. <a href="#/">Retour à l’accueil</a></p></div></div>`;
+}
+
+// ------------------------------------------------------------------ navigation
+function route() {
+  cleanup();
+  const h = location.hash.replace(/^#\/?/, '').split('#')[0];
+  const [a, b, c] = h.split('/');
+  document.querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', (x.dataset.nav === 'home' && (!a || a === 'famille' || a === 'element')) || x.dataset.nav === a || (x.dataset.nav === 'progressions' && a === 'progression')));
+  if (!a) pageHome();
+  else if (a === 'famille') pageFamille(b, c);
+  else if (a === 'element') pageElement(b);
+  else if (a === 'progressions') pageProgressions();
+  else if (a === 'progression') pageProgression(b, c);
+  else if (a === 'securite') pageSecurite();
+  else pageNotFound();
+  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité' };
+  document.title = (titles[a] ? titles[a] + ' · ' : '') + 'Gym EPS';
+  if (!(a === 'progression' && c) && !location.hash.includes('#validation')) window.scrollTo(0, 0);
+  app.focus({ preventScroll: true });
+}
+window.addEventListener('hashchange', route);
+route();
+
+// ------------------------------------------------------------------ recherche
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const INDEX = [
+  ...ELEMENTS.map(e => ({ label: e.nom, sub: `${e.fam.court || e.fam.titre} · ${e.niv}`, href: `#/element/${e.id}`, niv: e.niv, key: norm(e.nom + ' ' + e.fam.titre) })),
+  ...THEMES.flatMap(t => t.niveaux.map(n => ({ label: n.nom, sub: `Progression ${t.titre.toLowerCase()} · niveau ${n.niv}`, href: `#/progression/${t.id}/${n.niv}`, niv: n.niv, key: norm(n.nom + ' ' + t.titre + ' ' + t.element) }))),
+];
+const layer = $('.search-layer'), input = $('.search-layer input'), results = $('.search-results');
+let sel = 0;
+function openSearch() { layer.hidden = false; input.value = ''; renderResults(); input.focus(); }
+function closeSearch() { layer.hidden = true; }
+function renderResults() {
+  const q = norm(input.value.trim());
+  const words = q.split(/\s+/).filter(Boolean);
+  const hits = (words.length ? INDEX.filter(it => words.every(w => it.key.includes(w))) : INDEX.slice(0, 8)).slice(0, 30);
+  sel = 0;
+  results.innerHTML = hits.length ? hits.map((h, i) => `<li><a href="${h.href}" class="${i === 0 ? 'sel' : ''}">${lvlTag(h.niv)}<span>${esc(h.label)}</span><small>${esc(h.sub)}</small></a></li>`).join('') : '<li class="empty">Aucune figure trouvée.</li>';
+}
+$('.search-btn').onclick = openSearch;
+layer.addEventListener('click', e => { if (e.target === layer || e.target.closest('a')) closeSearch(); });
+input.addEventListener('input', renderResults);
+input.addEventListener('keydown', e => {
+  const links = [...results.querySelectorAll('a')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % Math.max(1, links.length);
+    links.forEach((l, i) => l.classList.toggle('sel', i === sel)); e.preventDefault();
+  } else if (e.key === 'Enter' && links[sel]) { location.hash = links[sel].getAttribute('href'); closeSearch(); }
+  else if (e.key === 'Escape') closeSearch();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && layer.hidden && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
+  if (e.key === 'Escape' && !layer.hidden) closeSearch();
+});
