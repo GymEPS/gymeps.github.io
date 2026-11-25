@@ -38,7 +38,7 @@ export function rouladeAvant({ legs = 'groupe', props } = {}) {
 
 /** Roulade avant en partant allongé·e sur le ventre sur un bloc (amortir avec les bras, poser la nuque). */
 export const rouladeAvantBloc = () => ({
-  props: [{ k: 'box', x0: -1.8, x1: -0.2, z0: -0.4, z1: 0.4, h: 0.5, color: '#0ea5e9' }, { k: 'box', x0: -0.2, x1: 2.2, z0: -0.7, z1: 0.7, h: 0.1, color: '#2563eb' }],
+  props: [{ k: 'box', x0: -1.95, x1: -0.32, z0: -0.4, z1: 0.4, h: 0.5, color: '#0ea5e9' }, { k: 'box', x0: -0.32, x1: 2.2, z0: -0.7, z1: 0.7, h: 0.1, color: '#2563eb' }],
   keys: [
     K(0, { lean: 90, sp: 0, nk: -10, hp: [0, 0, 0], kn: 0, an: 50, ff: 0, sh: [130, 8, 0], el: 0, wr: 60, x: -0.75 }, { label: 'Allongé·e sur le ventre sur le bloc' }),
     K(0.5, { lean: 100, sp: 25, nk: 20, sh: [150, 8, 0], el: 20, wr: 80, hf: 1 }, { label: 'Poser les mains à plat au sol', plant: HANDS }),

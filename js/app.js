@@ -2,6 +2,7 @@
 import { FAMILLES, NIVEAUX } from './data/familles.js';
 import { THEMES as ALL_THEMES, SECURITE, VALIDATION } from './data/progressions.js';
 import { animDef } from './anims/index.js';
+import { buildSequence } from './anims/sequence.js';
 import { Player, thumbnail } from './engine/player.js';
 
 const app = document.getElementById('app');
@@ -86,6 +87,7 @@ function pageHome() {
     <div class="grid theme-grid">${THEMES.map(themeCard).join('')}</div>
     <div class="section-title"><h2>Avant de commencer</h2></div>
     <div class="grid info-grid">
+      <a class="info-card" href="#/enchainement"><span class="ico">🤸</span><div><h3>Créer mon enchaînement</h3><p>Un élément par famille, dans l’ordre que tu veux, et l’animation de tout l’enchaînement.</p></div></a>
       <a class="info-card" href="#/securite"><span class="ico">🛡️</span><div><h3>Consignes de sécurité</h3><p>Matériel, espace de travail, parade et aide.</p></div></a>
       <a class="info-card" href="#/securite#validation"><span class="ico">✅</span><div><h3>Valider un niveau</h3><p>${esc(VALIDATION.devise)}.</p></div></a>
     </div>`;
@@ -253,6 +255,128 @@ function pageSecurite() {
   if (location.hash.includes('#validation')) setTimeout(() => $('#validation')?.scrollIntoView(), 50);
 }
 
+
+// ------------------------------------------------------------------ créer mon enchaînement
+const SEQ_KEY = 'gymeps:enchainement';
+function loadSeq(fromHash) {
+  // ordre = liste d'identifiants de familles ; choix = { famille: élément }
+  let st = null;
+  if (fromHash) {
+    const ids = fromHash.split(',').map(decodeURIComponent);
+    const order = [], pick = {};
+    for (const id of ids) { const e = elById(id); if (e && !pick[e.fam.id]) { order.push(e.fam.id); pick[e.fam.id] = id; } }
+    for (const f of FAMILLES) if (!order.includes(f.id)) order.push(f.id);
+    st = { order, pick };
+  }
+  if (!st) { try { st = JSON.parse(localStorage.getItem(SEQ_KEY) || 'null'); } catch { st = null; } }
+  if (!st || !Array.isArray(st.order) || st.order.length !== FAMILLES.length) st = { order: FAMILLES.map(f => f.id), pick: {} };
+  return st;
+}
+function saveSeq(st) { try { localStorage.setItem(SEQ_KEY, JSON.stringify(st)); } catch { /* navigation privée */ } }
+
+function pageEnchainement(fromHash) {
+  setAccent('#f59e0b');
+  const st = loadSeq(fromHash);
+  saveSeq(st);
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Mon enchaînement</span></nav>
+    <div class="page-head page-enter"><div><h1>Créer mon <em>enchaînement</em></h1>
+      <p>Choisis <b>un élément dans chaque famille</b>, range-les dans l’ordre que tu veux, puis regarde ton enchaînement en entier, figure après figure.</p></div></div>
+    <div class="seq-tools page-enter">
+      <div class="seq-summary" id="seq-sum"></div>
+      <div class="seq-actions">
+        <button class="chip" id="seq-rand">🎲 Au hasard</button>
+        <button class="chip" id="seq-clear">Tout effacer</button>
+        <button class="chip" id="seq-link">🔗 Copier le lien</button>
+      </div>
+    </div>
+    <ol class="seq-list page-enter" id="seq-list"></ol>
+    <div class="seq-play">
+      <button class="seq-go" id="seq-go">▶ Voir mon enchaînement</button>
+      <p class="muted" id="seq-go-hint"></p>
+      <div id="seq-player"></div>
+    </div>
+    <div class="sheet" id="seq-sheet" hidden><div class="sheet-box" role="dialog" aria-label="Choisir un élément"><div class="sheet-head"><h2 id="sheet-title"></h2><button class="sheet-x" aria-label="Fermer">✕</button></div><div class="sheet-body" id="sheet-body"></div></div></div>`;
+  const list = $('#seq-list');
+  const render = () => {
+    list.innerHTML = st.order.map((fid, i) => {
+      const f = FAMILLES.find(x => x.id === fid);
+      const e = st.pick[fid] ? elById(st.pick[fid]) : null;
+      return `<li class="seq-slot ${e ? 'full' : ''}" style="--c:${f.couleur}">
+        <span class="seq-num">${i + 1}</span>
+        <div class="seq-main">
+          <small>${esc(f.court || f.titre)}</small>
+          ${e ? `<b>${esc(e.nom)}</b> ${lvlTag(e.niv)}` : '<b class="muted">Pas encore choisi</b>'}
+        </div>
+        ${e ? `<canvas data-anim="${e.anim}" data-accent="${f.couleur}" aria-hidden="true"></canvas>` : ''}
+        <div class="seq-btns">
+          <button class="seq-pick" data-f="${fid}">${e ? 'Changer' : 'Choisir'}</button>
+          <span class="seq-move">
+            <button data-up="${i}" aria-label="Monter" ${i === 0 ? 'disabled' : ''}>▲</button>
+            <button data-down="${i}" aria-label="Descendre" ${i === st.order.length - 1 ? 'disabled' : ''}>▼</button>
+          </span>
+        </div>
+      </li>`;
+    }).join('');
+    const chosen = st.order.filter(f => st.pick[f]).map(f => elById(st.pick[f]));
+    $('#seq-sum').innerHTML = `<b>${chosen.length}/6</b> éléments choisis ${chosen.length ? '· ' + chosen.map(e => lvlTag(e.niv)).join(' ') : ''}`;
+    $('#seq-go').disabled = chosen.length < 2;
+    $('#seq-go-hint').textContent = chosen.length < 6 ? (chosen.length < 2 ? 'Choisis au moins 2 éléments pour voir l’enchaînement (6 pour l’enchaînement complet).' : `Il manque ${6 - chosen.length} famille(s) pour un enchaînement complet.`) : '';
+    list.querySelectorAll('.seq-pick').forEach(b => (b.onclick = () => openPicker(b.dataset.f)));
+    list.querySelectorAll('[data-up]').forEach(b => (b.onclick = () => { const i = +b.dataset.up; [st.order[i - 1], st.order[i]] = [st.order[i], st.order[i - 1]]; changed(); }));
+    list.querySelectorAll('[data-down]').forEach(b => (b.onclick = () => { const i = +b.dataset.down; [st.order[i + 1], st.order[i]] = [st.order[i], st.order[i + 1]]; changed(); }));
+    if (thumbsIO) thumbsIO.disconnect();
+    lazyThumbs(list);
+  };
+  const changed = () => {
+    saveSeq(st);
+    const ids = st.order.filter(f => st.pick[f]).map(f => st.pick[f]);
+    history.replaceState(null, '', '#/enchainement' + (ids.length ? '/' + ids.join(',') : ''));
+    players.forEach(p => p.destroy()); players = [];
+    $('#seq-player').innerHTML = '';
+    render();
+  };
+  const sheet = $('#seq-sheet');
+  const close = () => { sheet.hidden = true; if (thumbsIO) thumbsIO.disconnect(); lazyThumbs(list); };
+  sheet.querySelector('.sheet-x').onclick = close;
+  sheet.onclick = e => { if (e.target === sheet) close(); };
+  function openPicker(fid) {
+    const f = FAMILLES.find(x => x.id === fid);
+    $('#sheet-title').innerHTML = `Famille des <span style="color:${f.couleur}">${esc(f.titre)}</span>`;
+    const levels = Object.keys(NIVEAUX).filter(n => f.elements.some(e => e.niv === n));
+    $('#sheet-body').innerHTML = levels.map(n => `
+      <div class="level-head"><span class="level-badge" style="background:${LEVEL_COLORS[n]}">${n}</span><div><h2>Difficulté ${n}</h2><span>${NIVEAUX[n].nom}</span></div></div>
+      <div class="grid el-grid">${f.elements.filter(e => e.niv === n).map(e => `
+        <button class="el-card pick-card ${st.pick[fid] === e.id ? 'on' : ''}" data-el="${e.id}" style="--fc:${f.couleur}">
+          <canvas data-anim="${e.anim}" data-accent="${f.couleur}" aria-hidden="true"></canvas>
+          <div class="el-body"><h3>${esc(e.nom)}</h3>${lvlTag(e.niv)}</div></button>`).join('')}</div>`).join('');
+    sheet.hidden = false;
+    sheet.querySelector('.sheet-box').scrollTop = 0;
+    sheet.querySelectorAll('[data-el]').forEach(b => (b.onclick = () => { st.pick[fid] = b.dataset.el; close(); changed(); }));
+    if (thumbsIO) thumbsIO.disconnect();
+    lazyThumbs(sheet);
+  }
+  $('#seq-rand').onclick = () => { for (const f of FAMILLES) st.pick[f.id] = f.elements[Math.floor(Math.random() * f.elements.length)].id; changed(); };
+  $('#seq-clear').onclick = () => { st.pick = {}; st.order = FAMILLES.map(f => f.id); changed(); };
+  $('#seq-link').onclick = async () => {
+    const url = location.href;
+    try { await navigator.clipboard.writeText(url); $('#seq-link').textContent = '✓ Lien copié'; } catch { prompt('Copie ce lien :', url); }
+    setTimeout(() => { const b = $('#seq-link'); if (b) b.textContent = '🔗 Copier le lien'; }, 2000);
+  };
+  $('#seq-go').onclick = () => {
+    const items = st.order.filter(f => st.pick[f]).map(f => { const e = elById(st.pick[f]); return { anim: e.anim, nom: e.nom }; });
+    if (items.length < 2) return;
+    players.forEach(p => p.destroy()); players = [];
+    const holder = $('#seq-player');
+    holder.innerHTML = '';
+    const id = 'seq:' + items.map(x => x.anim).join(',');
+    const p = new Player(holder, { id, def: buildSequence(items), accent: '#f59e0b', view: 'trois', follow: true });
+    players.push(p);
+    holder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  render();
+}
+
 function pageNotFound() {
   setAccent('#22d3ee');
   app.innerHTML = `<div class="page-head" style="margin-top:30px"><div><h1>Oups</h1><p>Cette page n’existe pas. <a href="#/">Retour à l’accueil</a></p></div></div>`;
@@ -270,8 +394,9 @@ function route() {
   else if (a === 'progressions') pageProgressions();
   else if (a === 'progression') pageProgression(b, c);
   else if (a === 'securite') pageSecurite();
+  else if (a === 'enchainement') pageEnchainement(b);
   else pageNotFound();
-  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité' };
+  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité', enchainement: 'Mon enchaînement' };
   document.title = (titles[a] ? titles[a] + ' · ' : '') + 'Gym EPS';
   if (!(a === 'progression' && c) && !location.hash.includes('#validation')) window.scrollTo(0, 0);
   app.focus({ preventScroll: true });

@@ -5,6 +5,7 @@ import * as M from './maintiens.js';
 import * as RO from './roulements.js';
 import * as L from './liaisons.js';
 import * as A from './acrobaties.js';
+import { KITS, withKits } from './kits.js';
 
 const defs = {
   // Renversements
@@ -63,10 +64,15 @@ const defs = {
 };
 
 const made = new Map();
+/** id = « animation » ou « animation+kit+kit » (matériel en plus, voir kits.js). */
 export function animDef(id) {
-  if (!defs[id]) return null;
-  if (!made.has(id)) made.set(id, defs[id]());
-  return made.get(id);
+  if (made.has(id)) return made.get(id);
+  const [base, ...kits] = id.split('+');
+  if (!defs[base] || kits.some(k => !KITS[k])) return null;
+  let def = defs[base]();
+  if (kits.length) def = withKits(def, kits);
+  made.set(id, def);
+  return def;
 }
 export const ANIM_IDS = Object.keys(defs);
-export const hasAnim = id => !!defs[id];
+export const hasAnim = id => { const [base, ...kits] = id.split('+'); return !!defs[base] && kits.every(k => KITS[k]); };

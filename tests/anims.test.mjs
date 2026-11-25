@@ -3,7 +3,7 @@
 // - aucune partie du corps ne s'enfonce dans le sol / le matériel de plus de 3 cm ;
 // - les segments gardent leur longueur (pas de bras qui s'étire) ;
 // - toutes les animations utilisées par les données existent.
-import { animDef, ANIM_IDS } from '../js/anims/index.js';
+import { animDef, ANIM_IDS, hasAnim } from '../js/anims/index.js';
 import { bakeDef, surfaceAt, BODY } from '../js/engine/skeleton.js';
 import { THEMES } from '../js/data/progressions.js';
 import { FAMILLES } from '../js/data/familles.js';
@@ -12,7 +12,9 @@ const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const RAD = { head: BODY.headR, root: 0.1, l1: 0.095, l2: 0.1, nb: 0.075 };
 let fails = 0;
 const report = [];
-for (const id of ANIM_IDS) {
+const KIT_IDS = [];
+for (const t of THEMES) for (const n of t.niveaux) for (const a of [n.anim, ...n.remediations.map(r => r.anim)]) if (a.includes('+') && !KIT_IDS.includes(a)) KIT_IDS.push(a);
+for (const id of [...ANIM_IDS, ...KIT_IDS]) {
   let b;
   try { b = bakeDef(animDef(id)); } catch (e) { console.log('ERREUR', id, e.message); fails++; continue; }
   let worst = 0, where = '', stretch = 0, nan = false;
@@ -37,7 +39,7 @@ console.log(report.join('\n'));
 const used = new Set();
 for (const t of THEMES) for (const n of t.niveaux) { used.add(n.anim); n.remediations.forEach(r => used.add(r.anim)); }
 for (const f of FAMILLES) for (const e of f.elements) used.add(e.anim);
-const missing = [...used].filter(id => !ANIM_IDS.includes(id));
+const missing = [...used].filter(id => !hasAnim(id));
 if (missing.length) { console.log('Animations manquantes :', missing.join(', ')); fails++; }
 console.log(fails ? `\n${fails} problème(s)` : '\nTout est bon');
 process.exit(fails ? 1 : 0);

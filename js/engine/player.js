@@ -16,8 +16,19 @@ const PAUSE_END = 0.9; // s d'arrêt sur la position finale avant de recommencer
 const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class Player {
-  constructor(root, { id, def, accent = '#22d3ee', suit, compact = false, view = 'profil' }) {
+  constructor(root, { id, def, accent = '#22d3ee', suit, compact = false, view = 'profil', follow = false }) {
     this.b = baked(id, def);
+    this.follow = follow;
+    if (follow) {
+      // caméra qui suit : cadrage calculé sur le corps seul (toutes les poses ramenées au même endroit) + un peu de marge
+      const fr = this.b.frames.filter((_, i) => i % 4 === 0).map(f => {
+        const P = {}; for (const k in f.P) P[k] = [f.P[k][0] - f.P.root[0], f.P[k][1], f.P[k][2]];
+        return { P };
+      });
+      fr.push({ P: { head: [-1.1, 1.7, 0], toR: [1.1, 0, 0], toL: [1.1, 0, 0], fiR: [0, 0, 0], fiL: [0, 0, 0], root: [0, 1, 0], knR: [0, 0.5, 0], knL: [0, 0.5, 0] } });
+      this.fitB = { frames: fr, props: [] };
+      this.camX = this.b.frames[0].P.root[0];
+    }
     this.accent = accent;
     this.suit = suit || accent;
     this.t = 0;
@@ -200,7 +211,11 @@ export class Player {
     const t = Math.min(this.t, b.T);
     const fr = frameAt(b, t);
     if (this.stage) {
-      this.stage.draw(g, this.w, this.h, this.dpr, fr, { yaw: this.yaw, pitch: this.pitch, center: this.center });
+      if (this.follow) {
+        this.camX += (fr.P.root[0] - this.camX) * 0.12;
+        if (!this.playing || this.scrub || Math.abs(fr.P.root[0] - this.camX) > 2.5 || this.t < 0.05) this.camX = fr.P.root[0];
+        this.stage.draw(g, this.w, this.h, this.dpr, fr, { yaw: this.yaw, pitch: this.pitch, center: [this.camX, this.center[1], 0], fitB: this.fitB, fitX: this.camX });
+      } else this.stage.draw(g, this.w, this.h, this.dpr, fr, { yaw: this.yaw, pitch: this.pitch, center: this.center });
     } else {
       g.clearRect(0, 0, this.w, this.h);
       const trail = this.trail ? b.frames.filter((_, i) => i % 3 === 0).map(f => f.P.root) : null;

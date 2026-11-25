@@ -324,8 +324,18 @@ export class Stage3D {
     if (sh.w < W || sh.h < H) { sh.w = Math.max(sh.w, W); sh.h = Math.max(sh.h, H); sh.renderer.setSize(sh.w, sh.h, false); }
     this.fig.update(fr);
     // caméra : même cadrage que le moteur 2D (perspective douce, tout le mouvement dans l'image)
-    const m = camMath(view.yaw, view.pitch, view.center, 9);
-    fitCamera(m, this.b, w, h, view.pad ?? 0.06);
+    let m;
+    if (view.fitB) {
+      // caméra qui suit : cadrage fixe calculé autour de x = 0, puis on se déplace avec le gymnaste
+      m = camMath(view.yaw, view.pitch, [0, view.center[1], 0], 9);
+      fitCamera(m, view.fitB, w, h, view.pad ?? 0.06);
+      const m2 = camMath(view.yaw, view.pitch, view.center, 9);
+      m2.scale = m.scale; m2.cx = m.cx; m2.cy = m.cy;
+      m = m2;
+    } else {
+      m = camMath(view.yaw, view.pitch, view.center, 9);
+      fitCamera(m, this.b, w, h, view.pad ?? 0.06);
+    }
     const c = this.cam;
     c.position.set(...m.eye);
     c.up.set(...m.up);

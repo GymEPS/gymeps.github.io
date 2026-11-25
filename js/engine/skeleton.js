@@ -145,7 +145,7 @@ function addMids(P, F) {
 export function surfaceAt(props, x, z) {
   let y = 0;
   for (const p of props || []) {
-    if (p.solid === false) continue;
+    if (p.solid === false || p.k === 'mark') continue;
     if (x < p.x0 || x > p.x1 || z < p.z0 || z > p.z1) continue;
     const top = p.k === 'wedge' ? p.h0 + (p.h1 - p.h0) * (x - p.x0) / (p.x1 - p.x0) : p.h;
     if (top > y) y = top;
@@ -293,6 +293,7 @@ export function bake(anim, fps = 60) {
   let flight = null;
   const mem = {}; // directions des mains / pieds à l'image précédente
   const fall = { vy: 0 }; // vitesse verticale (chute libre quand l'appui disparaît)
+  let touched = null; // vol déjà terminé par un contact anticipé
   for (let f = 0; f < n; f++) {
     const t = Math.min(T, f / fps);
     let ki = 0;
@@ -304,7 +305,8 @@ export function bake(anim, fps = 60) {
     let { P, F } = fk(c, base, mem);
     addMids(P, F);
     // --- vol balistique
-    if (S.fly !== undefined && S.flyTo > ki && t < keys[S.flyTo].t) {
+    let inFlight = S.fly !== undefined && S.flyTo > ki && t < keys[S.flyTo].t && touched !== S.flyKey;
+    if (inFlight) {
       if (!flight || flight.ki !== S.flyKey) {
         const t0 = keys[S.flyKey].t, t1 = keys[S.flyTo].t;
         const x0 = frames.length ? frames[frames.length - 1].P.root : P.root;
@@ -322,10 +324,18 @@ export function bake(anim, fps = 60) {
       const target = [flight.x0[0] + (flight.x1[0] - flight.x0[0]) * u, y, flight.x0[2]];
       shiftAll(P, sub(target, P.root));
       const lo = lowest(P, props);
-      if (lo.cl < 0) shiftAll(P, [0, -lo.cl, 0]);
+      if (lo.cl < 0 && u > 0.85) {
+        // les pieds (ou les mains) touchent avant la fin prévue : la réception commence ici, l'amorti se fera au sol
+        touched = S.flyKey;
+        inFlight = false;
+        fall.vy = ((flight.y1 - flight.x0[1]) + 0.5 * 9.81 * Tf * Tf * (1 - 2 * u)) / Tf;
+        flight = null; contact = null;
+      } else if (lo.cl < 0) shiftAll(P, [0, -lo.cl, 0]);
       off = [P.root[0] - c.x, 0, P.root[2] - c.z];
-    } else {
+    }
+    if (!inFlight) {
       if (flight) { flight = null; contact = null; fall.vy = 0; }
+      if (touched !== null && !(S.fly !== undefined && S.flyTo > ki)) touched = null;
       // --- appui au sol : le plus bas touche, sans glisser (calculé sur la pose « naturelle », avant les appuis fixés)
       const lo = lowest(P, props);
       // posé sur le plus bas… mais si l'appui disparaît (bord d'un bloc), le corps TOMBE avec la gravité au lieu de descendre d'un coup
@@ -414,9 +424,12 @@ function smoothTips(frames, props) {
  */
 export function bakeDef(def) {
   const props = def.props || [];
-  if (!props.some(p => p.at !== undefined)) return bake(def);
-  const pre = bake({ ...def, props: props.filter(p => p.at === undefined) });
+  if (!props.some(p => p.at !== undefined || p.span)) return bake(def);
+  const pre = bake({ ...def, props: props.filter(p => p.at === undefined && !p.span) });
+  let mn = Infinity, mx = -Infinity;
+  for (const f of pre.frames) for (const k of ['root', 'toR', 'toL', 'fiR', 'fiL', 'head']) { mn = Math.min(mn, f.P[k][0]); mx = Math.max(mx, f.P[k][0]); }
   const placed = props.map(p => {
+    if (p.span) return { ...p, x0: mn - (p.pad ?? 0.5), x1: mx + (p.pad ?? 0.5), span: undefined }; // tout le long du trajet (couloir)
     if (p.at === undefined) return p;
     let at = p.at;
     if (typeof at === 'string') { // 'plant:handL' = 1re pose de cette main ; 'land' = 1re réception ; 'fly' = 1er appel

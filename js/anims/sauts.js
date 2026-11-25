@@ -12,7 +12,7 @@ function jump({ air, airLabel, flight = 0.5, dist = 0.1, yaw = 0, landO = {}, ex
   for (const e of extra) k.push(KW(t0 + flight * e.at, { ...ST, an: 55, ff: 0, ...e.pose }));
   k.sort((a, b) => a.t - b.t);
   k.push({ ...KW(t0 + flight * 0.86, { ...ST, ar: 170, fa: 170, an: 40, ff: 0, yaw, ...landO.pre }), });
-  k.push(landing(t0 + flight, { yaw, ...landO.pose }));
+  k.push(...landing(t0 + flight, { yaw, ...landO.pose }));
   return { keys: chain(k, finish(0.6, { yaw })), thumb: t0 + flight * 0.5 };
 }
 
@@ -50,7 +50,7 @@ export const sautAssemble = () => ({
       KW(0.58, { ...ST, lean: 0, T: 2, thL: 0, snL: 0, thR: 60, snR: 60, an: 50, ff: 0, ar: 120, fa: 120, sha: 30 }, { label: 'Lancer la jambe tendue', fly: 0.3 }),
       KW(0.8, { ...ST, lean: -6, T: 0, th: 30, sn: 30, an: 60, ff: 0, ar: 170, fa: 170 }, { label: 'Assembler les jambes tendues en l’air' }),
       KW(1.0, { ...ST, th: 5, sn: 5, an: 40, ff: 0, ar: 160, fa: 160 }),
-      landing(1.12)],
+      ...landing(1.12)],
     finish(0.6),
   ),
   thumb: 0.8,

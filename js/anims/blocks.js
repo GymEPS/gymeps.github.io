@@ -47,8 +47,11 @@ export const crouch = (o = {}) => [
 ];
 /** Impulsion : extension complète, bras lancés vers le haut. */
 export const takeoff = (o = {}) => KW(0.22, { ...ST, lean: 0, T: 0, th: 0, sn: 0, ar: 175, fa: 175, an: 40, ff: 0, ...o }, { label: 'Impulsion : pousser fort, bras vers le haut' });
-/** Réception amortie, bras devant (« réception corrigée »). */
-export const landing = (t, o = {}) => KW(t, { ...ST, lean: 18, T: 26, th: 62, sn: -24, ar: 95, fa: 95, an: 0, ff: 1, ...o }, { label: 'Réception : amortir, bras devant', land: true });
+/** Réception : les pieds touchent jambes presque tendues (fin du vol), puis on amortit au sol, bras devant (« réception corrigée »). */
+export const landing = (t, o = {}) => [
+  KW(t, { ...ST, lean: 4, T: 6, th: 14, sn: -2, ar: 120, fa: 120, an: 12, ff: 0.7, ...o }, { label: 'Réception : amortir, bras devant', land: true }),
+  KW(t + 0.22, { ...ST, lean: 18, T: 26, th: 62, sn: -24, ar: 95, fa: 95, an: 0, ff: 1, ...o }),
+];
 
 /** Course d'élan (n foulées) puis sursaut (appel 1 pied → réception 2 pieds) ; finit pieds joints, bras en haut, prêt à la fente. */
 export function runHurdle(n = 2) {

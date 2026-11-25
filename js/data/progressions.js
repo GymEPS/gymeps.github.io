@@ -47,7 +47,7 @@ export const THEMES = [
         parade: false,
         remediations: [
           {
-            nom: 'Roulade avant groupé sur plan incliné', anim: 'roulade-avant-plan',
+            nom: 'Roulade avant groupé sur plan incliné', anim: 'roulade-avant-plan+parade',
             consignes: ['Poser les mains à plat devant soi', 'Pousser dans les jambes pour monter les fesses au dessus de la tête', 'Amortir avec les bras et rentrer la tête (le menton touche la poitrine)'],
             materiel: ['Bloc de parade', 'Plan incliné'],
           },
@@ -79,7 +79,7 @@ export const THEMES = [
             materiel: ['Tremplin', 'Tapis'],
           },
           {
-            nom: 'Roulade avant écart sur plan incliné', anim: 'roulade-avant-ecart-plan',
+            nom: 'Roulade avant écart sur plan incliné', anim: 'roulade-avant-ecart-plan+parade',
             consignes: ['Départ pieds serrés', 'Poser les mains loin devant soi', 'Écarter les jambes au dernier moment', 'Se relever jambes tendues avec l’aide des mains entre les jambes'],
             materiel: ['Bloc de parade', 'Plan incliné'],
           },
@@ -109,7 +109,7 @@ export const THEMES = [
         parade: false,
         remediations: [
           {
-            nom: 'Saut de l’ange', anim: 'saut-ange', seulementDiff: true,
+            nom: 'Saut de l’ange', anim: 'saut-ange+surtapis-mains', seulementDiff: true,
             consignes: ['Regarder les mains se poser sur le sur-tapis de réception pour amortir avec ses bras'],
             materiel: ['Praticable', 'Sur-tapis de 10cm d’épaisseur'],
           },
@@ -119,7 +119,7 @@ export const THEMES = [
             materiel: ['Praticable', '1 tremplin', '2 tapis de réception', 'Sur-tapis de 10cm d’épaisseur'],
           },
           {
-            nom: 'Saut de l’ange sur tremplin', anim: 'saut-ange-tremplin', seulementDiff: true,
+            nom: 'Saut de l’ange sur tremplin', anim: 'saut-ange-tremplin+gros-tapis', seulementDiff: true,
             consignes: ['Utiliser le tremplin pour monter haut, corps gainé et aligné avant de poser les mains sur le gros tapis de réception'],
             materiel: ['Praticable', '1 tremplin', '2 tapis de réception', '1 gros tapis de réception'],
           },
@@ -255,21 +255,21 @@ export const THEMES = [
             materiel: ['Gros tapis au mur', 'Tapis de réception'],
           },
           {
-            nom: 'ATR 3’’ dos au mur', anim: 'atr-dos-mur', seulementDiff: true,
+            nom: 'ATR 3’’ dos au mur', anim: 'atr-dos-mur+repere-mains', seulementDiff: true,
             consignes: ['Regarder un repère visuel au sol du début à la fin'],
             materiel: ['Gros tapis au mur', 'Tapis de réception', 'Repère visuel au sol'],
           },
         ],
       },
       {
-        niv: 'D', nom: 'ATR tomber à plat dos', anim: 'atr-plat-dos',
+        niv: 'D', nom: 'ATR tomber à plat dos', anim: 'atr-plat-dos+repere-mains',
         criteres: ['Je regarde toujours mes mains au sol', 'Arriver bras tendus et alignés avec le dos, dans l’axe et corps gainé'],
         consignes: ['Poser les mains à plat en fléchissant la jambe avant, bras tendus, écartement des épaules', 'Regarder les mains ou un repère visuel au sol', 'Lancer la jambe arrière, tendue et assembler les 2 pieds à la verticale en restant gainé jusqu’à la réception sur le dos (bras, dos et jambes alignés)'],
         materiel: ['Tapis de réception', 'Repère visuel au sol'],
         parade: false,
         remediations: [
           {
-            nom: 'ATR tomber à plat dos', anim: 'atr-plat-dos',
+            nom: 'ATR tomber à plat dos', anim: 'atr-plat-dos+repere-mains',
             consignes: ['Départ mains au sol, bras tendus, pieds sur le bloc jambes tendues, aligner le dos avec les bras (placement du dos)', 'Regarder les mains ou un repère visuel au sol', 'Monter une jambe puis l’autre à la verticale (ATR)', 'Rester gainé jusqu’à la réception sur le dos (bras, dos et jambes alignés)'],
             materiel: ['Bloc en mousse', 'Tapis de réception', 'Repère visuel au sol'],
           },
@@ -300,14 +300,14 @@ export const THEMES = [
         ],
       },
       {
-        niv: 'F', nom: 'ATR avec impulsion, tomber à plat dos', anim: 'atr-impulsion',
+        niv: 'F', nom: 'ATR avec impulsion, tomber à plat dos', anim: 'atr-impulsion+repere-franchir',
         criteres: ['Sursaut sur les mains bras tendus (impulsion)', 'Arriver bras tendus, dans l’axe, corps gainé'],
         consignes: ['Grande fente avant en regardant la marque à franchir au sol', 'Lancer fort la jambe arrière et pousser très fort dans les épaules pour franchir le repère visuel au sol en « sautant »', 'Passer en ATR après avoir franchi la marque au sol', 'Rester gainé jusqu’à la réception sur le dos (bras, dos et jambes alignés)'],
         materiel: ['Tapis de réception', 'Repère visuel au sol'],
         parade: false,
         remediations: [
           {
-            nom: 'ATR avec impulsion, tomber à plat dos', anim: 'atr-impulsion', seulementDiff: true,
+            nom: 'ATR avec impulsion, tomber à plat dos', anim: 'atr-impulsion+repere-franchir', seulementDiff: true,
             consignes: ['Franchir le repère visuel au sol en avançant une main, puis l’autre, lorsque les pieds dépassent la verticale (marcher sur les mains)'],
             materiel: ['Tapis de réception', 'Repère visuel au sol'],
           },
@@ -335,7 +335,7 @@ export const THEMES = [
         parade: false,
         remediations: [
           {
-            nom: 'Saut de mains au sol', anim: 'saut-mains', seulementDiff: true,
+            nom: 'Saut de mains au sol', anim: 'saut-mains+tapis-reception', seulementDiff: true,
             consignes: ['Poser les mains sur le tapis'],
             materiel: ['2 tapis de réception', '1 sur-tapis de réception'],
           },
@@ -371,7 +371,7 @@ export const THEMES = [
         ],
       },
       {
-        niv: 'B', nom: 'Roue sur obstacle en longueur', anim: 'roue-plinth-long',
+        niv: 'B', nom: 'Roue sur obstacle en longueur', anim: 'roue-plinth-long+carpette',
         criteres: ['J’arrive un pied après l’autre dans la zone de réception', 'Passage jambes tendues vers l’ATR'],
         consignes: ['Départ debout devant l’obstacle, bras levés alignés avec le dos', 'Poser un pied sur l’obstacle et lancer la jambe arrière tendue vers le haut', 'Poser une main après l’autre au bout de l’obstacle (mains tournées l’une vers l’autre)', 'Pousser fort sur les bras et regarder le bout de l’obstacle jusqu’à la réception'],
         materiel: ['Chapeau de caisse en bois', 'Carpette'],
@@ -379,7 +379,7 @@ export const THEMES = [
         remediations: [],
       },
       {
-        niv: 'C', nom: 'Roue dans un couloir', anim: 'roue',
+        niv: 'C', nom: 'Roue dans un couloir', anim: 'roue+couloir',
         criteres: ['Roue axée dans le couloir', 'Mes jambes ne touchent pas les murs'],
         consignes: ['Départ en grande fente avant, bras alignés avec le dos', 'Lancer fort la jambe arrière tendue vers le haut et poser les mains au sol en tournant les épaules dans l’axe du déplacement', 'Pousser fort sur un bras puis sur l’autre', 'Regarder l’endroit où les mains se posent jusqu’à la réception'],
         materiel: ['2 blocs en mousse rectangulaires'],
@@ -407,7 +407,7 @@ export const THEMES = [
             materiel: ['2 Tapis de réception', '1 sur-tapis de réception', 'Mini-trampoline', '2 petites caisses en bois et leur chapeau'],
           },
           {
-            nom: 'Rondade sur mini-trampoline', anim: 'rondade-trampo',
+            nom: 'Rondade sur mini-trampoline', anim: 'rondade-trampo+obstacle',
             consignes: ['Bien tourner les épaules dans le sens du déplacement juste avant de poser les mains sur le mini-trampoline', 'Pousser sur les 2 bras pour rester dans l’axe'],
             materiel: ['2 Tapis de réception', '1 sur-tapis de réception', '1 obstacle en mousse', 'Mini-trampoline', '2 petites caisses en bois et leur chapeau'],
           },
@@ -464,7 +464,7 @@ export const THEMES = [
         parade: false,
         remediations: [
           {
-            nom: 'Salto avant avec tremplin, réception debout', anim: 'salto-avant-tremplin', seulementDiff: true,
+            nom: 'Salto avant avec tremplin, réception debout', anim: 'salto-avant-tremplin+repere-appel', seulementDiff: true,
             consignes: ['Appel long et rasant par-dessus le repère visuel avant le tremplin'],
             materiel: ['2 tapis de réception', '1 sur-tapis de réception', '1 tremplin', '1 repère visuel au sol'],
           },
@@ -483,12 +483,12 @@ export const THEMES = [
         parade: false,
         remediations: [
           {
-            nom: 'Salto avant au sol', anim: 'salto-avant', seulementDiff: true,
+            nom: 'Salto avant au sol', anim: 'salto-avant+surtapis', seulementDiff: true,
             consignes: ['Se réceptionner debout sur le sur-tapis pour amortir la réception'],
             materiel: ['Praticable', '1 sur-tapis de réception'],
           },
           {
-            nom: 'Salto avant au sol', anim: 'salto-avant',
+            nom: 'Salto avant au sol', anim: 'salto-avant+tapis-reception+repere-appel',
             consignes: ['Appel long et rasant par-dessus le repère visuel', 'Se réceptionner debout sur les tapis pour amortir la réception'],
             materiel: ['2 tapis de réception', '1 sur-tapis de réception', '1 repère visuel au sol'],
           },

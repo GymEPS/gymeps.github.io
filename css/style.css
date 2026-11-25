@@ -251,3 +251,41 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 16px 40px; outline: none; }
 .page-enter { animation: enter .35s ease both; }
 @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } * { scroll-behavior: auto !important; } }
+
+/* ---------- créer mon enchaînement */
+.seq-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.seq-summary { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; color: var(--muted); }
+.seq-summary b { color: var(--text); font-size: 18px; }
+.seq-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.seq-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+@media (max-width: 420px) { .seq-list { grid-template-columns: 1fr; } }
+.seq-slot { display: grid; grid-template-columns: 40px 1fr auto; grid-template-areas: 'num main img' 'num btns btns'; gap: 6px 12px; align-items: center; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: var(--r); padding: 12px 14px; }
+.seq-slot.full { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 12%, var(--card)), var(--card) 60%); }
+.seq-num { grid-area: num; align-self: start; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0b1020; font-family: var(--display); font-size: 22px; }
+.seq-main { grid-area: main; min-width: 0; }
+.seq-main small { display: block; color: var(--c); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.seq-main b { font-size: 16px; }
+.seq-slot canvas { grid-area: img; width: 110px; height: 82px; border-radius: 10px; background: radial-gradient(circle at 50% 30%, #182544, #0e1630 70%); }
+.seq-btns { grid-area: btns; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.seq-pick { border: 0; background: var(--c); color: #0b1020; font-weight: 800; padding: 7px 16px; border-radius: 999px; }
+.seq-move { display: flex; gap: 4px; }
+.seq-move button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); color: var(--muted); }
+.seq-move button:disabled { opacity: .3; cursor: default; }
+.seq-move button:not(:disabled):hover { color: var(--text); border-color: var(--line2); }
+.seq-play { margin-top: 22px; display: grid; gap: 10px; }
+.seq-go { justify-self: start; border: 0; background: var(--fc); color: #0b1020; font-weight: 800; font-size: 17px; padding: 12px 22px; border-radius: 999px; box-shadow: 0 6px 20px color-mix(in srgb, var(--fc) 35%, transparent); }
+.seq-go:disabled { opacity: .4; box-shadow: none; cursor: default; }
+.seq-play p { margin: 0; }
+.sheet { position: fixed; inset: 0; z-index: 40; background: rgba(5, 8, 18, .72); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheet-box { width: min(980px, 100%); max-height: 88vh; overflow: auto; background: var(--bg); border: 1px solid var(--line2); border-radius: 22px 22px 0 0; padding: 0 16px 20px; overscroll-behavior: contain; }
+@media (min-width: 760px) { .sheet { align-items: center; } .sheet-box { border-radius: 22px; } }
+.sheet-head { position: sticky; top: 0; background: var(--bg); display: flex; justify-content: space-between; align-items: center; padding: 14px 0 8px; z-index: 2; }
+.sheet-head h2 { font-family: var(--display); font-weight: 400; font-size: 30px; }
+.sheet-x { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); }
+.pick-card { text-align: left; border: 1px solid var(--line); padding: 0; cursor: pointer; }
+.pick-card.on { border-color: var(--fc); box-shadow: 0 0 0 2px var(--fc); }
+@media (max-width: 720px) { .topnav a { font-size: 13px; padding: 6px 2px; } }
+
+.nav-m { display: none; }
+@media (max-width: 720px) { .nav-d { display: none; } .nav-m { display: inline; } }
