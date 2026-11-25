@@ -1,6 +1,6 @@
 // Gym EPS : navigation (adresses en #/…), pages, recherche.
 import { FAMILLES, NIVEAUX } from './data/familles.js';
-import { THEMES, SECURITE, VALIDATION } from './data/progressions.js';
+import { THEMES as ALL_THEMES, SECURITE, VALIDATION } from './data/progressions.js';
 import { animDef } from './anims/index.js';
 import { Player, thumbnail } from './engine/player.js';
 
@@ -11,6 +11,9 @@ const LEVEL_COLORS = { A: '#22c55e', B: '#3b82f6', C: '#f59e0b', D: '#ef4444', E
 const lvlTag = n => `<span class="tag" style="background:${LEVEL_COLORS[n]}">${n}</span>`;
 const ELEMENTS = FAMILLES.flatMap(f => f.elements.map(e => ({ ...e, fam: f })));
 const elById = id => ELEMENTS.find(e => e.id === id);
+// Progressions de niveau lycée masquées pour les 4e (choix de Gabin, 25/11/2026) : les données restent dans progressions.js.
+const HIDDEN_THEMES = ['flip', 'salto-arriere'];
+const THEMES = ALL_THEMES.filter(t => !HIDDEN_THEMES.includes(t.id));
 const themeById = id => THEMES.find(t => t.id === id);
 
 let players = [];
@@ -178,7 +181,7 @@ function pageProgressions() {
   setAccent('#22d3ee');
   app.innerHTML = `
     <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Progressions</span></nav>
-    <div class="page-head page-enter"><div><h1>Progressions <em>pas à pas</em></h1><p>Sept thèmes de travail, du niveau A au niveau le plus haut. Valide chaque niveau avant de passer au suivant.</p></div></div>
+    <div class="page-head page-enter"><div><h1>Progressions <em>pas à pas</em></h1><p>${THEMES.length} thèmes de travail, du niveau A au niveau le plus haut. Valide chaque niveau avant de passer au suivant.</p></div></div>
     <div class="grid theme-grid page-enter">${THEMES.map(themeCard).join('')}</div>`;
 }
 
