@@ -1,6 +1,6 @@
 # Gym EPS — consignes du projet
 
-Bibliothèque de gymnastique au sol pour les élèves de 4e de Gabin (professeur d'EPS). Site statique, sans étape de construction : HTML + CSS + modules JavaScript. En ligne : https://gab1point0.github.io/gymeps/ (dépôt public `Gab1point0/gymeps`, GitHub Pages depuis `main`, racine). Une publication = un `git push` sur `main`.
+Bibliothèque de gymnastique au sol pour les élèves de 4e de Gabin (professeur d'EPS). Site statique, sans étape de construction : HTML + CSS + modules JavaScript. En ligne : https://gymeps.github.io/ (dépôt public `GymEPS/gymeps.github.io`, organisation GitHub « GymEPS » créée par Gabin pour avoir un lien court, GitHub Pages depuis `main`, racine). Une publication = un `git push` sur `main`.
 
 ## Contenu
 - `js/data/familles.js` : les 6 familles du document « Les familles de la gymnastique au sol » (renversements, sauts, maintiens, roulements, liaisons / éléments chorégraphiques, acrobaties), éléments classés A → D avec leurs critères de réalisation. `lien: [thème, niveau]` relie un élément à sa fiche de progression ; `variantes` = autres animations au choix ; `prof: true` = à faire seulement avec le professeur.
