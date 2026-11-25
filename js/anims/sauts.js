@@ -20,7 +20,7 @@ export const sautDroit = () => jump({ air: { ar: 178, fa: 178, sha: 8 }, airLabe
 export const sautDemiTour = () => jump({ air: { ar: 178, fa: 178, sha: 4 }, airLabel: 'Tourner d’un demi-tour, corps gainé', flight: 0.5, yaw: 180 });
 export const sautTour = () => jump({ air: { ar: 178, fa: 178, sha: 2 }, airLabel: 'Tour complet : bras serrés, corps gainé', flight: 0.56, yaw: 360 });
 export const sautGroupe = () => jump({
-  air: { lean: -8, T: 12, th: 118, sn: -15, ar: 70, fa: 120, an: 50 }, airLabel: 'Genoux à la poitrine, jambes serrées', flight: 0.56,
+  air: { lean: -14, T: 14, th: 142, sn: 8, ar: 72, fa: 125, an: 50, nk: 15 }, airLabel: 'Genoux à la poitrine, jambes serrées', flight: 0.56,
   extra: [{ at: 0.22, pose: { ar: 150, fa: 150, th: 40, sn: 0 } }, { at: 0.74, pose: { th: 50, sn: -10, ar: 120, fa: 120 } }],
 });
 export const sautCarpeEcart = () => jump({
@@ -33,8 +33,8 @@ export const sautChat = () => ({
   keys: chain(
     [KW(0, { ...ST, ar: 10, fa: 20 }, { label: 'Départ debout' }),
       KW(0.35, { ...ST, lean: 8, T: 10, thL: 30, snL: -30, thR: -20, snR: -20, ar: 60, fa: 80, fR: 0.4 }, { label: 'Un pas, fléchir' }),
-      KW(0.6, { ...ST, lean: 4, T: 6, thL: 10, snL: 0, thR: 95, snR: -20, ar: 150, fa: 150, an: 50, ff: 0 }, { label: 'Monter un genou…', fly: 0.35 }),
-      KW(0.82, { ...ST, lean: 0, T: 4, thL: 95, snL: -25, thR: 60, snR: -10, ar: 160, fa: 160, an: 50, ff: 0 }, { label: '… puis l’autre' }),
+      KW(0.6, { ...ST, lean: 4, T: 6, thL: 10, snL: 0, thR: 112, snR: -15, ar: 150, fa: 150, an: 50, ff: 0 }, { label: 'Monter un genou…', fly: 0.35 }),
+      KW(0.82, { ...ST, lean: 0, T: 4, thL: 112, snL: -20, thR: 55, snR: -15, ar: 160, fa: 160, an: 50, ff: 0 }, { label: '… puis l’autre' }),
       KW(1.02, { ...ST, lean: 4, T: 6, thR: 20, snR: -10, thL: 40, snL: 0, an: 30, ar: 140, fa: 140, ff: 0 }),
       KW(1.15, { ...ST, lean: 10, T: 14, thR: 40, snR: -20, thL: 25, snL: -5, fR: 1, fL: 0.4, anL: 30, ar: 100, fa: 100 }, { land: true, label: 'Réception un pied puis l’autre' })],
     finish(0.6),

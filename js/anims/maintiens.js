@@ -51,8 +51,8 @@ export const pont = () => tenue(
 
 export const equerreGroupee = () => tenue(
   [KW(0, { ...ST, lean: -10, T: 0, th: 80, sn: -40, ar: 0, fa: 0, hf: 1, wr: 80, ff: 1 }, { label: 'Assis, mains à plat près des hanches', plant: HANDS }),
-    KW(0.7, { lean: -12, T: 0, th: 100, sn: -40, ar: -4, fa: -4, an: 40, ff: 0 }, { label: 'Pousser bras tendus : décoller fesses et pieds' })],
-  { lean: -12, T: 0, th: 102, sn: -40, ar: -4, fa: -4, an: 40, ff: 0 }, 'Équerre groupée : bras tendus, jambes fléchies',
+    KW(0.7, { lean: -8, T: 8, th: 122, sn: 8, ar: -4, fa: -4, an: 45, ff: 0, nk: 10 }, { label: 'Pousser bras tendus : décoller fesses et pieds' })],
+  { lean: -8, T: 8, th: 126, sn: 10, ar: -4, fa: -4, an: 45, ff: 0, nk: 10 }, 'Équerre groupée : bras tendus, jambes fléchies',
   { out: [KW(0, {}), KW(0.6, { lean: -10, T: 0, th: 80, sn: -40, ar: 0, fa: 0, an: 0, ff: 1 }, { label: 'Se reposer' }), KW(1.0, {}, { plant: [] })] });
 
 export const equerre = () => tenue(

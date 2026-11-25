@@ -318,7 +318,13 @@ export function bakeDef(def) {
   const pre = bake({ ...def, props: props.filter(p => p.at === undefined) });
   const placed = props.map(p => {
     if (p.at === undefined) return p;
-    const f = pre.frames[Math.min(pre.frames.length - 1, Math.round(p.at * pre.fps))];
+    let at = p.at;
+    if (typeof at === 'string') { // 'plant:handL' = 1re pose de cette main ; 'land' = 1re réception ; 'fly' = 1er appel
+      const [kind, eff] = at.split(':');
+      const k = def.keys.find(q => (kind === 'plant' ? q.plant && q.plant.includes(eff) : q[kind] !== undefined && q[kind] !== false));
+      at = k ? k.t : 0;
+    }
+    const f = pre.frames[Math.min(pre.frames.length - 1, Math.round(at * pre.fps))];
     const x = f.P[p.ref || 'root'][0] + (p.dx || 0);
     return { ...p, x0: x + p.x0, x1: x + p.x1, at: undefined };
   });

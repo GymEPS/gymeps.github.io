@@ -42,12 +42,12 @@ export const pasChasses = () => {
   return { keys: k, thumb: 0.45 };
 };
 
-const PLANK = { lean: 74, T: 74, th: -106, sn: -106, ar: 0, fa: 0, an: 0, ff: 0, hf: 1, wr: 85, nk: -10 };
+const PLANK = { lean: 74, T: 74, th: -74, sn: -74, ar: 0, fa: 0, an: 0, ff: 0, hf: 1, wr: 85, nk: -10 };
 
 export const ressortGroupe = () => ({
   keys: chain(
     [KW(0, PLANK, { label: 'Appui facial (planche), bras tendus', plant: ALL4 }),
-      KW(0.35, { ...PLANK, lean: 90, T: 80, th: -60, sn: -110 }, { label: 'Temps de ressort : pousser des pieds', plant: HANDS }),
+      KW(0.35, { ...PLANK, lean: 96, T: 80, th: -40, sn: -100 }, { label: 'Temps de ressort : pousser des pieds', plant: HANDS }),
       KW(0.6, { lean: 85, T: 95, th: 50, sn: -60, ar: 4, fa: 4, an: 20, ff: 0.5, nk: -10 }, { label: 'Ramener les genoux groupés' }),
       KW(0.8, { lean: 40, T: 75, th: 88, sn: -25, ar: 18, fa: 18, an: 0, ff: 1 }, { label: 'Retour accroupi, pieds entre les mains', plant: ALL4 })],
     hold([KW(0, {})], 0.5),
@@ -59,7 +59,7 @@ export const ressortGroupe = () => ({
 export const ressortTendu = () => ({
   keys: chain(
     [KW(0, PLANK, { label: 'Appui facial, bras tendus', plant: ALL4 }),
-      KW(0.35, { ...PLANK, lean: 110, T: 90, th: -60, sn: -60, an: 40 }, { label: 'Temps de ressort : bassin haut', plant: HANDS }),
+      KW(0.35, { ...PLANK, lean: 110, T: 96, th: -50, sn: -50, an: 40 }, { label: 'Temps de ressort : bassin haut', plant: HANDS }),
       KW(0.65, { lean: 120, T: 112, th: 10, sn: 10, ar: 8, fa: 8, an: 10, ff: 0.6, nk: -10 }, { label: 'Jambes tendues tout au long' }),
       KW(0.85, { lean: 112, T: 118, th: 4, sn: 4, ar: 10, fa: 10, an: 0, ff: 1 }, { label: 'Pieds près des mains, jambes tendues', plant: ALL4 })],
     hold([KW(0, {})], 0.4),

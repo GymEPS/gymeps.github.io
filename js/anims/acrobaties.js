@@ -60,7 +60,7 @@ const rebondSaut = (L, yaw) => [
 ];
 export const rondadeSaut = () => ({ keys: chain(runHurdle(1), lungeFromHurdle(), rondadeCore(), rebondSaut(360, -180)), thumb: 2.3 });
 export const rondadeTrampo = () => ({
-  props: [{ k: 'wedge', at: 1.95, ref: 'wrL', dx: -0.2, x0: 0, x1: 0.9, z0: -0.45, z1: 0.45, h0: 0.22, h1: 0.4, color: '#1e293b' }],
+  props: [{ k: 'wedge', at: 'plant:handL', ref: 'wrL', dx: -0.25, x0: 0, x1: 0.95, z0: -0.45, z1: 0.45, h0: 0.22, h1: 0.4, color: '#1e293b' }],
   keys: chain(runHurdle(1), lungeFromHurdle(), rondadeCore(), standAfter(360, -180)),
   thumb: 2.3,
 });
@@ -193,7 +193,7 @@ export const saltoAvantTremplin = () => ({
 });
 export const saltoAvantTrampo = ({ seated = false } = {}) => ({
   props: [TRAMP(0.95), { ...STACK(0, 0.5), at: 0.95, dx: 0.65 }],
-  keys: chain(runHurdle(1), saltoAvantCore(0, { flight: 0.82, dist: 1.25, seated }), standAfter(seated ? 335 : 360, 0)), thumb: 1.5,
+  keys: chain(runHurdle(1), saltoAvantCore(0, { flight: 0.82, dist: 1.25, seated }), seated ? [C(0), K(0.5, { lean: 345, sp: 30, hp: [100, 0, 0], kn: 120, an: 0, ff: 1, sh: [110, 10, 0] }, { label: 'Se relever' }), K(1.0, { ...STAND_UP, lean: 360 })] : standAfter(360, 0)), thumb: 1.5,
 });
 
 /** Saut de l'ange (et roulade élevée) : impulsion 2 pieds, vol corps aligné, mains au sol, roulade. */
@@ -232,7 +232,7 @@ function sautMainsCore({ dist = 0.95 } = {}) {
 }
 export const sautMains = () => ({ keys: chain(runHurdle(1), lungeFromHurdle(), sautMainsCore()), thumb: 2.35 });
 export const sautMainsTrampo = () => ({
-  props: [{ k: 'box', at: 2.05, ref: 'wrL', dx: -0.35, x0: 0, x1: 0.7, z0: -0.4, z1: 0.4, h: 0.32, color: '#111827' }, { ...STACK(0, 0.3, 2.4), at: 2.05, dx: 0.9 }],
+  props: [{ k: 'box', at: 'plant:handL', ref: 'wrL', dx: -0.3, x0: 0, x1: 0.7, z0: -0.4, z1: 0.4, h: 0.32, color: '#111827' }, { ...STACK(0, 0.3, 2.4), at: 'plant:handL', ref: 'wrL', dx: 0.75 }],
   keys: chain(runHurdle(1), lungeFromHurdle(), sautMainsCore({ dist: 1.15 })), thumb: 2.35,
 });
 
@@ -262,36 +262,36 @@ export const souplesseAvant = () => ({
   thumb: 1.62,
 });
 
-function kickoverCore(L) {
+function kickoverCore(Lb) {
   return [C(0),
-    K(0.45, { lean: L - 90, sp: -110, nk: -40, hpR: [100, 0, 0], knR: 0, anR: 50, fR: 0, hpL: [30, 0, 0], knL: 40, sh: [188, 8, 0], el: 0, hf: 1, wr: 85 }, { label: 'Pont : lever la jambe libre tendue', plant: ['handR', 'handL', 'footL'] }),
-    K(0.85, { lean: L - 180, sp: -25, nk: -25, hpR: [80, 0, 0], hpL: [-50, 0, 0], knL: 0, anL: 50, fL: 0 }, { label: 'Pousser sur la jambe d’appui : les jambes passent par-dessus', plant: HANDS }),
-    K(1.2, { lean: L - 262, sp: -45, hpR: [110, 0, 0], hpL: [-40, 0, 0], anR: 0, fR: 0.6 }, { label: 'Poser un pied, puis l’autre', plant: ['handR', 'handL', 'footR'] }),
-    K(1.55, { lean: L - 325, sp: -25, nk: -10, hpR: [30, 0, 0], hpL: [-55, 0, 0], fR: 1, hf: 0.4 }, { plant: ['footR'] }),
-    K(1.95, { lean: L - 360, sp: 0, nk: 0, hpR: [0, 0, 0], hpL: [-35, 0, 0], kn: 0, anL: 50, fL: 0, hf: 0, wr: 0, sh: [176, 10, 0] }, { label: 'Se redresser, bras en haut', plant: [] }),
-    K(2.35, { ...STAND_UP, lean: L - 360 }),
+    K(0.45, { lean: Lb, sp: -110, nk: -40, hpR: [100, 0, 0], knR: 0, anR: 50, fR: 0, hpL: [30, 0, 0], knL: 40, sh: [188, 8, 0], el: 0, hf: 1, wr: 85 }, { label: 'Pont : lever la jambe libre tendue', plant: ['handR', 'handL', 'footL'] }),
+    K(0.85, { lean: -180, sp: -25, nk: -25, hpR: [80, 0, 0], hpL: [-50, 0, 0], knL: 0, anL: 50, fL: 0 }, { label: 'Pousser sur la jambe d’appui : les jambes passent par-dessus', plant: HANDS }),
+    K(1.2, { lean: -262, sp: -45, hpR: [110, 0, 0], hpL: [-40, 0, 0], anR: 0, fR: 0.6 }, { label: 'Poser un pied, puis l’autre', plant: ['handR', 'handL', 'footR'] }),
+    K(1.55, { lean: -325, sp: -25, nk: -10, hpR: [30, 0, 0], hpL: [-55, 0, 0], fR: 1, hf: 0.4 }, { plant: ['footR'] }),
+    K(1.95, { lean: -360, sp: 0, nk: 0, hpR: [0, 0, 0], hpL: [-35, 0, 0], kn: 0, anL: 50, fL: 0, hf: 0, wr: 0, sh: [176, 10, 0] }, { label: 'Se redresser, bras en haut', plant: [] }),
+    K(2.35, { ...STAND_UP, lean: -360 }),
   ];
 }
 export const souplesseArriere = () => ({
   keys: chain([K(0, { ...STAND_UP, hpR: [25, 0, 0], anR: 50, fR: 0 }, { label: 'Debout sur une jambe, bras en haut' }),
     K(0.6, { lean: -30, sp: -80, nk: -40, hpR: [45, 0, 0], sh: [192, 8, 0] }, { label: 'Pousser le bassin devant, se cambrer, regarder les mains' }),
     K(1.0, { lean: -88, sp: -112, hpR: [80, 0, 0], hf: 1, wr: 85 }, { label: 'Poser les mains : pont sur une jambe', plant: ['handR', 'handL', 'footL'] })],
-  kickoverCore(2)),
+  kickoverCore(-88)),
   thumb: 1.5,
 });
 export const pontRevenir = () => ({
   keys: chain([K(0, { lean: -90, sp: 0, nk: 0, hp: [50, 0, 0], kn: 90, an: 0, ff: 1, sh: [170, 12, 0], el: 130, wr: 60, hf: 1 }, { label: 'Départ sur le dos, mains près des oreilles', plant: ALL4 }),
     K(0.9, { lean: -42, sp: -112, nk: -40, hp: [26, 0, 0], kn: 62, sh: [188, 8, 0], el: 0 }, { label: 'Venir en pont : bras tendus' })],
-  kickoverCore(48)),
+  kickoverCore(-42)),
   thumb: 1.7,
 });
 
 /** Roue sur un obstacle (mains sur la caisse en largeur) – roue A ; en longueur – roue B. */
 export const roueObstacle = () => ({
   ...roue(),
-  props: [{ k: 'box', at: 1.0, ref: 'wrL', dx: -0.25, x0: 0, x1: 0.55, z0: -0.45, z1: 0.45, h: 0.3, color: '#a16207' }],
+  props: [{ k: 'box', at: 'plant:handL', ref: 'wrL', dx: -0.2, x0: 0, x1: 0.55, z0: -0.45, z1: 0.45, h: 0.3, color: '#a16207' }],
 });
 export const rouePlinthLong = () => ({
   ...roue(),
-  props: [{ k: 'box', at: 1.0, ref: 'wrL', dx: -0.3, x0: 0, x1: 1.2, z0: -0.25, z1: 0.25, h: 0.25, color: '#a16207' }],
+  props: [{ k: 'box', at: 'plant:handL', ref: 'wrL', dx: -0.3, x0: 0, x1: 1.2, z0: -0.25, z1: 0.25, h: 0.25, color: '#a16207' }],
 });
