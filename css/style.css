@@ -289,3 +289,24 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 16px 40px; outline: none; }
 
 .nav-m { display: none; }
 @media (max-width: 720px) { .nav-d { display: none; } .nav-m { display: inline; } }
+
+/* ---------- enregistrer ma progression */
+.save-cta { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; padding: 12px 22px; border-radius: 999px; background: #22c55e; color: #052e16; font-weight: 800; font-size: 17px; text-decoration: none; box-shadow: 0 6px 22px rgba(34, 197, 94, .35); }
+.save-cta:hover { filter: brightness(1.08); }
+.prog-form { display: grid; gap: 14px; }
+.prog-who { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.prog-who label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
+.prog-who input { font: 600 17px var(--font); color: var(--text); background: var(--bg2); border: 1px solid var(--line2); border-radius: 12px; padding: 11px 12px; }
+.prog-who input:focus { outline: 2px solid #22c55e; }
+.prog-themes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.prog-theme h2 { color: var(--fc); text-transform: none; letter-spacing: 0; font-size: 17px; margin-bottom: 2px; }
+.prog-theme > p { margin: 0 0 10px; font-size: 13px; }
+.prog-levels { display: flex; gap: 6px; flex-wrap: wrap; }
+.lv-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.lv-opt span { display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 10px; border: 2px solid var(--line2); font-family: var(--display); font-size: 24px; cursor: pointer; color: var(--muted); }
+.lv-opt.none span { font-family: var(--font); font-size: 13px; font-weight: 700; }
+.lv-opt input:checked + span { background: var(--lc, var(--card2)); border-color: var(--lc, var(--text)); color: #0b1020; }
+.lv-opt.none input:checked + span { color: var(--text); background: var(--card2); }
+.lv-opt input:focus-visible + span { outline: 3px solid var(--fc); }
+.lv-name { margin: 8px 0 0; font-size: 13px; min-height: 1.2em; }
+.prog-send { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }

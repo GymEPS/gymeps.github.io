@@ -62,6 +62,7 @@ function pageHome() {
       <div>
         <h1>Gym EPS <span>au sol</span></h1>
         <p>Toutes les figures de gymnastique au sol, rangées par famille et par difficulté. Touche une figure pour la voir bouger en 3D, sous tous les angles, au ralenti si tu veux.</p>
+        <a class="save-cta" href="#/ma-progression">✍️ Enregistrer ma progression</a>
         <div class="hero-stats">
           <div><b>6</b>familles</div>
           <div><b>${nEl}</b>figures</div>
@@ -377,6 +378,80 @@ function pageEnchainement(fromHash) {
   render();
 }
 
+
+// ------------------------------------------------------------------ enregistrer ma progression
+// Écriture seule dans Supabase (fonction gymeps_save) : le site ne relit jamais les résultats des élèves.
+const SUPA = { url: 'https://vvsmienmspftdzqykhnt.supabase.co', key: 'sb_publishable_D0cEBEyEtCTA6Ys1xsQKoA_-uN-BEEN' };
+async function saveProgress(prenom, nom, classe, niveaux) {
+  const r = await fetch(SUPA.url + '/rest/v1/rpc/gymeps_save', {
+    method: 'POST',
+    headers: { apikey: SUPA.key, Authorization: 'Bearer ' + SUPA.key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_prenom: prenom, p_nom: nom, p_classe: classe, p_niveaux: niveaux }),
+  });
+  if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+  return r.json();
+}
+
+function pageMaProgression() {
+  setAccent('#22c55e');
+  app.innerHTML = `
+    <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Enregistrer ma progression</span></nav>
+    <div class="page-head page-enter"><div><h1>Enregistrer ma <em>progression</em></h1>
+      <p>Écris ton prénom et ton nom, puis, pour chaque élément, le <b>plus haut niveau validé aujourd’hui par ton professeur</b>. Laisse « Pas de changement » si tu n’as rien validé de nouveau : ton ancien résultat est gardé.</p></div></div>
+    <form class="prog-form page-enter" id="prog-form" autocomplete="off">
+      <div class="panel prog-who">
+        <label><span>Prénom</span><input name="prenom" required maxlength="40" autocomplete="off"></label>
+        <label><span>Nom de famille</span><input name="nom" required maxlength="40" autocomplete="off"></label>
+        <label><span>Classe <small class="muted">(facultatif)</small></span><input name="classe" maxlength="20" placeholder="ex. 4eB" autocomplete="off"></label>
+      </div>
+      <div class="prog-themes">
+        ${THEMES.map(t => `
+          <div class="panel prog-theme" style="--fc:${t.couleur}">
+            <h2>${esc(t.titre)}</h2>
+            <p class="muted">${esc(t.element)}</p>
+            <div class="prog-levels" role="radiogroup" aria-label="${esc(t.titre)}">
+              <label class="lv-opt none"><input type="radio" name="t-${t.id}" value="" checked><span>Pas de changement</span></label>
+              ${t.niveaux.map(n => `<label class="lv-opt" title="${esc(n.nom)}"><input type="radio" name="t-${t.id}" value="${n.niv}"><span style="--lc:${LEVEL_COLORS[n.niv]}">${n.niv}</span></label>`).join('')}
+            </div>
+            <p class="lv-name muted" data-t="${t.id}">&nbsp;</p>
+          </div>`).join('')}
+      </div>
+      <div class="prog-send">
+        <button type="submit" class="seq-go" style="--fc:#22c55e">Enregistrer</button>
+        <p class="muted" id="prog-msg" role="status"></p>
+      </div>
+    </form>`;
+  const form = $('#prog-form');
+  form.querySelectorAll('input[type=radio]').forEach(r => (r.onchange = () => {
+    const tid = r.name.slice(2);
+    const t = THEMES.find(x => x.id === tid);
+    const n = t.niveaux.find(x => x.niv === r.value);
+    form.querySelector(`.lv-name[data-t="${tid}"]`).textContent = n ? `Niveau ${n.niv} : ${n.nom}` : ' ';
+  }));
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const prenom = (fd.get('prenom') || '').trim(), nom = (fd.get('nom') || '').trim(), classe = (fd.get('classe') || '').trim();
+    const niveaux = {};
+    for (const t of THEMES) { const v = fd.get('t-' + t.id); if (v) niveaux[t.id] = v; }
+    const msg = $('#prog-msg');
+    if (!prenom || !nom) { msg.textContent = 'Écris ton prénom et ton nom.'; return; }
+    if (!Object.keys(niveaux).length && !confirm('Tu n’as choisi aucun niveau. Enregistrer quand même ton nom ?')) return;
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; msg.textContent = 'Enregistrement…';
+    try {
+      await saveProgress(prenom, nom, classe, niveaux);
+      app.innerHTML = `<div class="page-head page-enter" style="margin-top:30px"><div><h1>C’est <em>enregistré</em> ✅</h1>
+        <p>Merci ${esc(prenom)} ! ${Object.keys(niveaux).length ? `Niveaux envoyés : ${THEMES.filter(t => niveaux[t.id]).map(t => `${esc(t.titre)} → <b>${niveaux[t.id]}</b>`).join(' · ')}.` : ''}</p>
+        <p><a class="chip" href="#/">Retour à l’accueil</a> <a class="chip" href="#/ma-progression">Enregistrer un autre élève</a></p></div></div>`;
+    } catch (err) {
+      btn.disabled = false;
+      msg.textContent = 'Impossible d’enregistrer pour l’instant (pas de connexion ?). Réessaie dans un moment.';
+      console.error(err);
+    }
+  };
+}
+
 function pageNotFound() {
   setAccent('#22d3ee');
   app.innerHTML = `<div class="page-head" style="margin-top:30px"><div><h1>Oups</h1><p>Cette page n’existe pas. <a href="#/">Retour à l’accueil</a></p></div></div>`;
@@ -395,8 +470,9 @@ function route() {
   else if (a === 'progression') pageProgression(b, c);
   else if (a === 'securite') pageSecurite();
   else if (a === 'enchainement') pageEnchainement(b);
+  else if (a === 'ma-progression') pageMaProgression();
   else pageNotFound();
-  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité', enchainement: 'Mon enchaînement' };
+  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité', enchainement: 'Mon enchaînement', 'ma-progression': 'Enregistrer ma progression' };
   document.title = (titles[a] ? titles[a] + ' · ' : '') + 'Gym EPS';
   if (!(a === 'progression' && c) && !location.hash.includes('#validation')) window.scrollTo(0, 0);
   app.focus({ preventScroll: true });
