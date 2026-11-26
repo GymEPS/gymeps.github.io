@@ -20,7 +20,7 @@ Bibliothèque de gymnastique au sol pour les élèves de 4e de Gabin (professeur
 - `pose.js` : `K(t, pose)` angles relatifs ; `KW(t, pose)` angles VUS DE PROFIL (T buste, th cuisse, sn tibia, ar bras, fa avant-bras ; 0 = vers le bas / debout, + = vers l'avant) — plus simple pour les mouvements de profil ; utiliser `K` dès que le corps tourne sur lui-même (roue, rondade, flip après rondade). `chain()` enchaîne des morceaux, `hold()` tient une position.
 - `blocks.js` : briques communes (fente → ATR, retour, élan + sursaut, préparation / réception de saut).
 - Un fichier par famille + `index.js` (registre identifiant → fonction). Chaque identifiant utilisé dans les données doit exister (le test le vérifie).
-- Contrôle : `npm test` (= `node tests/anims.test.mjs` : calcul de toutes les animations, rien d'enfoncé de plus de 3 cm, segments de longueur constante, animations manquantes). Contrôle visuel : `dev.html?q=id1,id2&n=12&c=6&h=150&w=620&v=profil|trois|face|dessus` (planche d'images).
+- Contrôle : `npm test` (= `node tests/anims.test.mjs` : calcul de toutes les animations, rien d'enfoncé de plus de 3 cm, segments de longueur constante, animations manquantes). Appuis : `node tests/appuis.mjs id…` (hauteur en cm des fesses, mains, pieds, épaules à chaque phase : un appui au sol ≈ fesses 8, poignet 3, talon / orteils 2 ; à lancer après toute modification d'une position au sol). Contrôle visuel : `dev.html?q=id1,id2&n=12&c=6&h=150&w=620&v=profil|trois|face|dessus` (planche d'images).
 
 ## Aperçu local
 Entrée `gymeps` de `Claude dump/.claude/launch.json` (serveur statique Python, port 5210).
