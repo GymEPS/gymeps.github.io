@@ -392,12 +392,19 @@ async function saveProgress(prenom, nom, classe, niveaux) {
   return r.json();
 }
 
+// les 6 familles de l'accueil, niveaux A → D présents dans chaque famille
+const PROG_CATS = FAMILLES.map(f => ({
+  id: f.id, titre: f.titre, couleur: f.couleur,
+  niveaux: Object.keys(NIVEAUX).filter(n => f.elements.some(e => e.niv === n)).map(n => ({
+    niv: n, nom: `${NIVEAUX[n].nom} (${f.elements.filter(e => e.niv === n).map(e => e.nom).join(', ')})` })),
+}));
+
 function pageMaProgression() {
   setAccent('#22c55e');
   app.innerHTML = `
     <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Enregistrer ma progression</span></nav>
     <div class="page-head page-enter"><div><h1>Enregistrer ma <em>progression</em></h1>
-      <p>Écris ton prénom et ton nom, puis, pour chaque élément, le <b>plus haut niveau validé aujourd’hui par ton professeur</b>. Laisse « Pas de changement » si tu n’as rien validé de nouveau : ton ancien résultat est gardé.</p></div></div>
+      <p>Écris ton prénom et ton nom, puis, pour chaque famille, le <b>plus haut niveau validé aujourd’hui par ton professeur</b>. Laisse « Pas de changement » si tu n’as rien validé de nouveau : ton ancien résultat est gardé.</p></div></div>
     <form class="prog-form page-enter" id="prog-form" autocomplete="off">
       <div class="panel prog-who">
         <label><span>Prénom</span><input name="prenom" required maxlength="40" autocomplete="off"></label>
@@ -405,10 +412,10 @@ function pageMaProgression() {
         <label><span>Classe <small class="muted">(facultatif)</small></span><input name="classe" maxlength="20" placeholder="ex. 4eB" autocomplete="off"></label>
       </div>
       <div class="prog-themes">
-        ${THEMES.map(t => `
+        ${PROG_CATS.map(t => `
           <div class="panel prog-theme" style="--fc:${t.couleur}">
             <h2>${esc(t.titre)}</h2>
-            <p class="muted">${esc(t.element)}</p>
+            <p class="muted">Difficulté de l’élément le plus dur réussi</p>
             <div class="prog-levels" role="radiogroup" aria-label="${esc(t.titre)}">
               <label class="lv-opt none"><input type="radio" name="t-${t.id}" value="" checked><span>Pas de changement</span></label>
               ${t.niveaux.map(n => `<label class="lv-opt" title="${esc(n.nom)}"><input type="radio" name="t-${t.id}" value="${n.niv}"><span style="--lc:${LEVEL_COLORS[n.niv]}">${n.niv}</span></label>`).join('')}
@@ -424,7 +431,7 @@ function pageMaProgression() {
   const form = $('#prog-form');
   form.querySelectorAll('input[type=radio]').forEach(r => (r.onchange = () => {
     const tid = r.name.slice(2);
-    const t = THEMES.find(x => x.id === tid);
+    const t = PROG_CATS.find(x => x.id === tid);
     const n = t.niveaux.find(x => x.niv === r.value);
     form.querySelector(`.lv-name[data-t="${tid}"]`).textContent = n ? `Niveau ${n.niv} : ${n.nom}` : ' ';
   }));
@@ -433,7 +440,7 @@ function pageMaProgression() {
     const fd = new FormData(form);
     const prenom = (fd.get('prenom') || '').trim(), nom = (fd.get('nom') || '').trim(), classe = (fd.get('classe') || '').trim();
     const niveaux = {};
-    for (const t of THEMES) { const v = fd.get('t-' + t.id); if (v) niveaux[t.id] = v; }
+    for (const t of PROG_CATS) { const v = fd.get('t-' + t.id); if (v) niveaux[t.id] = v; }
     const msg = $('#prog-msg');
     if (!prenom || !nom) { msg.textContent = 'Écris ton prénom et ton nom.'; return; }
     if (!Object.keys(niveaux).length && !confirm('Tu n’as choisi aucun niveau. Enregistrer quand même ton nom ?')) return;
@@ -442,7 +449,7 @@ function pageMaProgression() {
     try {
       await saveProgress(prenom, nom, classe, niveaux);
       app.innerHTML = `<div class="page-head page-enter" style="margin-top:30px"><div><h1>C’est <em>enregistré</em> ✅</h1>
-        <p>Merci ${esc(prenom)} ! ${Object.keys(niveaux).length ? `Niveaux envoyés : ${THEMES.filter(t => niveaux[t.id]).map(t => `${esc(t.titre)} → <b>${niveaux[t.id]}</b>`).join(' · ')}.` : ''}</p>
+        <p>Merci ${esc(prenom)} ! ${Object.keys(niveaux).length ? `Niveaux envoyés : ${PROG_CATS.filter(t => niveaux[t.id]).map(t => `${esc(t.titre)} → <b>${niveaux[t.id]}</b>`).join(' · ')}.` : ''}</p>
         <p><a class="chip" href="#/">Retour à l’accueil</a> <a class="chip" href="#/ma-progression">Enregistrer un autre élève</a></p></div></div>`;
     } catch (err) {
       btn.disabled = false;

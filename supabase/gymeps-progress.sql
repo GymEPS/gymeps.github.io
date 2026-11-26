@@ -2,6 +2,7 @@
 -- Les élèves ÉCRIVENT seulement (fonction gymeps_save) ; personne ne peut lire depuis le site.
 -- Le professeur (via Claude) lit la table directement pour faire les fiches.
 -- Relu (architect) le 26/11/2026 : plafond de lignes, nettoyage des espaces, search_path vide.
+-- 26/11/2026 : catégories = les 6 familles (A → D) au lieu des thèmes de progression.
 
 create table if not exists public.gymeps_progress (
   cle text primary key,                       -- prénom + nom normalisés (minuscules, sans accents ni espaces superflus)
@@ -38,8 +39,8 @@ declare
   v_new jsonb := '{}'::jsonb;
   k text;
   v text;
-  -- thèmes visibles sur le site et leur dernier niveau
-  v_max jsonb := '{"rouler-avant":"F","rouler-arriere":"D","atr":"H","roue":"F","salto-avant":"E"}'::jsonb;
+  -- les 6 familles de l'accueil et leur dernier niveau (A → D)
+  v_max jsonb := '{"renversements":"D","sauts":"D","maintiens":"D","roulements":"D","liaisons":"D","acrobaties":"D"}'::jsonb;
 begin
   if length(p_prenom) > 200 or length(p_nom) > 200 or length(p_classe) > 100 or pg_column_size(p_niveaux) > 2000 then
     raise exception 'entrée trop longue';

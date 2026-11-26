@@ -26,8 +26,8 @@ Bibliothèque de gymnastique au sol pour les élèves de 4e de Gabin (professeur
 Entrée `gymeps` de `Claude dump/.claude/launch.json` (serveur statique Python, port 5210).
 
 ## Enregistrer ma progression (élèves)
-- Bouton vert de l'accueil → `#/ma-progression` (`pageMaProgression` dans app.js) : prénom, nom, classe (facultatif), et pour chaque thème VISIBLE le plus haut niveau validé aujourd'hui (ou « Pas de changement »).
+- Bouton vert de l'accueil → `#/ma-progression` (`pageMaProgression` dans app.js) : prénom, nom, classe (facultatif), et pour chacune des 6 FAMILLES de l'accueil (choix de Gabin, pas les thèmes de progression) le plus haut niveau de difficulté A → D validé aujourd'hui (`PROG_CATS`) (ou « Pas de changement »).
 - Stockage : table `public.gymeps_progress` du projet Supabase Road2Fit (`vvsmienmspftdzqykhnt`), schéma dans `supabase/gymeps-progress.sql` (relu par architect le 26/11/2026). Le site appelle seulement `rpc/gymeps_save` (clé publique) : il ÉCRIT, ne lit jamais. RLS sans policy = table fermée au public.
-- Fusion : clé = prénom|nom normalisés (minuscules, sans accents, tirets / apostrophes = espaces) ; un niveau saisi et différent remplace l'ancien (avec sa date), un thème vide garde l'ancien ; plafond 1 500 élèves.
+- Fusion : clé = prénom|nom normalisés (minuscules, sans accents, tirets / apostrophes = espaces) ; un niveau saisi et différent remplace l'ancien (avec sa date), une famille vide garde l'ancien ; plafond 1 500 élèves.
 - Fiche pour le professeur : lire la table via le MCP Supabase (`select prenom, nom, classe, niveaux, updated_at from public.gymeps_progress order by classe, nom, prenom`) et produire la fiche demandée. Données d'élèves mineurs : ne jamais les mettre dans un brief de sous-agent ni dans un dépôt.
-- Si un thème est ajouté / démasqué : mettre à jour `v_max` dans la fonction SQL.
+- Si une famille ou un niveau change : mettre à jour `v_max` dans la fonction SQL.
