@@ -4,7 +4,7 @@ import { THEMES as ALL_THEMES, SECURITE, VALIDATION } from './data/progressions.
 import { animDef } from './anims/index.js';
 import { buildSequence } from './anims/sequence.js';
 import { Player, thumbnail } from './engine/player.js';
-import { initAnalyse, pageAnalyse, analyseCleanup, analyseHref } from './analyse.js';
+import { initAnalyse, pageAnalyse, analyseCleanup, analyseHref } from './comparer.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
