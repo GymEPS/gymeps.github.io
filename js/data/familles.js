@@ -5,10 +5,10 @@ import { THEMES } from './progressions.js';
 
 export const NIVEAUX = {
   A: { nom: 'Apprentissage', couleur: '#14b8a6' },
-  B: { nom: 'Facile', couleur: '#22c55e' },
-  C: { nom: 'Moyen', couleur: '#3b82f6' },
+  B: { nom: 'Les bases', couleur: '#22c55e' },
+  C: { nom: 'Confirmé', couleur: '#3b82f6' },
   D: { nom: 'Difficile', couleur: '#f59e0b' },
-  E: { nom: 'Très difficile', couleur: '#ef4444' },
+  E: { nom: 'Expert', couleur: '#ef4444' },
 };
 
 export const FAMILLES = [

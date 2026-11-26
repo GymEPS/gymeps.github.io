@@ -70,7 +70,7 @@ function pageHome() {
       </div>
       <div class="hero-demo"><a class="hero-caption" href="#/element/rondade">Rondade ›</a><div id="demo"></div></div>
     </section>
-    <div class="section-title"><h2>Les 6 familles</h2><p>Chaque famille est classée de A à E : A = exercices d’apprentissage qui préparent aux figures, puis de B (facile) à E (très difficile).</p></div>
+    <div class="section-title"><h2>Les 6 familles</h2><p>Chaque famille est classée de A à E : A = exercices d’apprentissage qui préparent aux figures, puis B (les bases), C (confirmé), D (difficile) et E (expert).</p></div>
     <div class="grid fam-grid">
       ${FAMILLES.map(f => {
         const counts = Object.keys(NIVEAUX).map(n => [n, f.elements.filter(e => e.niv === n).length]).filter(x => x[1]);
