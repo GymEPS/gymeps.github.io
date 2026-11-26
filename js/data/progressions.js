@@ -25,7 +25,7 @@ export const SECURITE = {
 };
 
 export const VALIDATION = {
-  niveaux: 'De A à H selon les thèmes',
+  niveaux: 'De A à E dans chaque famille (A = exercices d’apprentissage)',
   criteres: [
     'L’élément doit être réussi du premier coup',
     'Respect des critères de réussite',

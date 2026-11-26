@@ -3,6 +3,7 @@
 -- Le professeur (via Claude) lit la table directement pour faire les fiches.
 -- Relu (architect) le 26/11/2026 : plafond de lignes, nettoyage des espaces, search_path vide.
 -- 26/11/2026 : catégories = les 6 familles (A → D) au lieu des thèmes de progression.
+-- 26/11/2026 (soir) : niveaux A → E (A = apprentissage, anciens A..D décalés d’un cran → B..E), voir supabase/gymeps-niveaux-a-e.sql.
 
 create table if not exists public.gymeps_progress (
   cle text primary key,                       -- prénom + nom normalisés (minuscules, sans accents ni espaces superflus)
@@ -39,8 +40,8 @@ declare
   v_new jsonb := '{}'::jsonb;
   k text;
   v text;
-  -- les 6 familles de l'accueil et leur dernier niveau (A → D)
-  v_max jsonb := '{"renversements":"D","sauts":"D","maintiens":"D","roulements":"D","liaisons":"D","acrobaties":"D"}'::jsonb;
+  -- les 6 familles de l'accueil et leur dernier niveau (A → E)
+  v_max jsonb := '{"renversements":"E","sauts":"E","maintiens":"E","roulements":"E","liaisons":"E","acrobaties":"E"}'::jsonb;
 begin
   if length(p_prenom) > 200 or length(p_nom) > 200 or length(p_classe) > 100 or pg_column_size(p_niveaux) > 2000 then
     raise exception 'entrée trop longue';

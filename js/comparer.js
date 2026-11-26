@@ -3,6 +3,7 @@
 // La vidéo ne quitte JAMAIS l'appareil : elle reste en mémoire (lien blob:) et disparaît quand on quitte la page.
 // Pensé d'abord pour la TABLETTE : gros boutons, côte à côte à l'horizontale, l'un sous l'autre à la verticale, mode plein écran.
 
+import { ELEMENT_DE_PROGRESSION } from './data/familles.js';
 let C; // outils de app.js (voir initAnalyse)
 let live = null; // ce qu'il faut arrêter en quittant la page (caméra, enregistrement, boucle, lien de la vidéo)
 
@@ -25,45 +26,40 @@ function stopStream() {
 /** Adresse du mode analyse pour la page affichée (bouton flottant). */
 export function analyseHref(a, b, c) {
   if (a === 'element' && b) return `#/analyse/element/${b}`;
-  if (a === 'progression' && b && c) return `#/analyse/niveau/${b}/${c}`;
-  if (a === 'progression' && b) return `#/analyse/progression/${b}`;
   return '#/analyse';
 }
 
-/** Figure à comparer : élément d'une famille ou niveau d'une progression. */
+/** Figure à comparer (élément d'une famille). */
 function target(kind, b, c) {
-  const { elById, themeById, NIVEAUX, LEVEL_COLORS } = C;
+  const { elById, NIVEAUX } = C;
   if (kind === 'element') {
     const e = elById(b);
     if (!e) return null;
     const anims = e.variantes ? e.variantes.map(v => ({ nom: v.nom, anim: v.anim })) : [{ nom: e.nom, anim: e.anim }];
     return { titre: e.nom, sous: `${e.fam.titre} · difficulté ${e.niv} (${NIVEAUX[e.niv].nom.toLowerCase()})`, niv: e.niv, couleur: e.fam.couleur,
       anims, criteres: e.criteres, back: `#/element/${e.id}`, backLabel: 'la fiche de la figure', prof: e.prof,
-      entrainement: e.lien ? `#/progression/${e.lien[0]}/${e.lien[1]}` : null };
-  }
-  if (kind === 'niveau') {
-    const t = themeById(b), n = t && t.niveaux.find(x => x.niv === c);
-    if (!n) return null;
-    return { titre: n.nom, sous: `Progression « ${t.titre} » · niveau ${n.niv}`, niv: n.niv, couleur: LEVEL_COLORS[n.niv],
-      anims: [{ nom: n.nom, anim: n.anim }], criteres: n.criteres, back: `#/progression/${t.id}/${n.niv}`, backLabel: 'la fiche du niveau', prof: n.parade,
-      entrainement: n.remediations && n.remediations.length ? `#/progression/${t.id}/${n.niv}` : null };
+      entrainement: e.entrainement ? `#/element/${e.entrainement}` : e.fiche && e.fiche.remediations.length ? `#/element/${e.id}` : null };
   }
   return null;
 }
 
 export function pageAnalyse(kind, b, c) {
-  if (kind === 'element' || kind === 'niveau') {
+  if (kind === 'niveau' || kind === 'progression') {
+    // anciens liens : les niveaux de progression sont maintenant des figures des familles
+    const id = ELEMENT_DE_PROGRESSION[b + '/' + (c || 'A')];
+    return location.replace(id ? '#/analyse/element/' + id : '#/analyse');
+  }
+  if (kind === 'element') {
     const T = target(kind, b, c);
     return T ? pageCompare(T, kind, b, c) : C.pageNotFound();
   }
-  return pagePicker(kind === 'progression' ? b : null);
+  return pagePicker();
 }
 
 // ------------------------------------------------------------------ 1. choisir la figure
-function pagePicker(themeId) {
-  const { app, $, esc, FAMILLES, THEMES, LEVEL_COLORS, lvlTag, setAccent, lazyThumbs } = C;
+function pagePicker() {
+  const { app, $, esc, FAMILLES, lvlTag, setAccent, lazyThumbs } = C;
   setAccent('#f43f5e');
-  const tab = themeId ? 'prog' : 'fig';
   app.innerHTML = `
     <nav class="crumbs page-enter"><a href="#/">Accueil</a> › <span>Filmer et comparer</span></nav>
     <div class="page-head page-enter"><div><h1>Filmer et <em>comparer</em></h1>
@@ -73,20 +69,14 @@ function pagePicker(themeId) {
       <li><b>2</b><span>Filme ton camarade</span></li>
       <li><b>3</b><span>Compare et juge</span></li>
     </ol>
-    <div class="an-tabs page-enter" role="tablist">
-      <button role="tab" data-tab="fig" aria-selected="${tab === 'fig'}">Figures des 6 familles</button>
-      <button role="tab" data-tab="prog" aria-selected="${tab === 'prog'}">Niveaux des progressions</button>
-    </div>
     <div class="an-search page-enter"><input type="search" placeholder="Chercher une figure : roue, ATR, saut…" aria-label="Chercher une figure" autocomplete="off"></div>
     <div id="an-list" class="page-enter"></div>`;
   const list = $('#an-list'), q = $('.an-search input');
   const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  let cur = tab;
   const render = () => {
     const words = norm(q.value.trim()).split(/\s+/).filter(Boolean);
     const ok = s => words.every(w => norm(s).includes(w));
-    if (cur === 'fig') {
-      list.innerHTML = FAMILLES.map(f => {
+    list.innerHTML = FAMILLES.map(f => {
         const els = f.elements.filter(e => ok(e.nom + ' ' + f.titre));
         if (!els.length) return '';
         return `<section class="an-fam" style="--fc:${f.couleur}"><h2>${esc(f.titre)}</h2><div class="grid el-grid">${els.map(e => `
@@ -94,21 +84,8 @@ function pagePicker(themeId) {
             <canvas data-anim="${e.anim}" data-accent="${f.couleur}" aria-hidden="true"></canvas>
             <div class="el-body"><h3>${esc(e.nom)}</h3>${lvlTag(e.niv)}</div></a>`).join('')}</div></section>`;
       }).join('') || '<p class="muted">Aucune figure trouvée.</p>';
-    } else {
-      list.innerHTML = THEMES.filter(t => !themeId || t.id === themeId || words.length).map(t => {
-        const lv = t.niveaux.filter(n => ok(n.nom + ' ' + t.titre + ' ' + t.element));
-        if (!lv.length) return '';
-        return `<section class="an-fam" style="--fc:${t.couleur}"><h2>${esc(t.titre)}</h2><div class="an-levels">${lv.map(n => `
-          <a class="an-level" href="#/analyse/niveau/${t.id}/${n.niv}" style="--lc:${LEVEL_COLORS[n.niv]}"><span class="level-badge">${n.niv}</span><b>${esc(n.nom)}</b><span class="arrow">›</span></a>`).join('')}</div></section>`;
-      }).join('') + (themeId && !words.length ? '<p><a class="chip" href="#/analyse/progression">Voir toutes les progressions</a></p>' : '') || '<p class="muted">Aucun niveau trouvé.</p>';
-    }
-    lazyThumbs(list);
+        lazyThumbs(list);
   };
-  app.querySelectorAll('[data-tab]').forEach(btn => (btn.onclick = () => {
-    cur = btn.dataset.tab;
-    app.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === btn));
-    render();
-  }));
   q.addEventListener('input', render);
   render();
 }

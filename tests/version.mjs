@@ -20,7 +20,7 @@ const block = [
   '  <script type="importmap">' + JSON.stringify({ imports: map }) + '</script>',
   '  <link rel="stylesheet" href="css/style.css?v=' + h('css/style.css') + '">',
   '  <!-- /versions -->',
-].join('\r\n');
+].join('\n');
 
 const p = join(root, 'index.html');
 let s = readFileSync(p, 'utf8');
