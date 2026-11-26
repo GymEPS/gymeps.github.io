@@ -4,6 +4,7 @@ import { THEMES as ALL_THEMES, SECURITE, VALIDATION } from './data/progressions.
 import { animDef } from './anims/index.js';
 import { buildSequence } from './anims/sequence.js';
 import { Player, thumbnail } from './engine/player.js';
+import { initAnalyse, pageAnalyse, analyseCleanup, analyseHref } from './analyse.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -20,6 +21,7 @@ const themeById = id => THEMES.find(t => t.id === id);
 let players = [];
 let thumbsIO = null;
 function cleanup() {
+  analyseCleanup();
   players.forEach(p => p.destroy());
   players = [];
   if (thumbsIO) thumbsIO.disconnect();
@@ -62,7 +64,7 @@ function pageHome() {
       <div>
         <h1>Gym EPS <span>au sol</span></h1>
         <p>Toutes les figures de gymnastique au sol, rangées par famille et par difficulté. Touche une figure pour la voir bouger en 3D, sous tous les angles, au ralenti si tu veux.</p>
-        <a class="save-cta" href="#/ma-progression">✍️ Enregistrer ma progression</a>
+        <div class="hero-ctas"><a class="save-cta" href="#/ma-progression">✍️ Enregistrer ma progression</a><a class="save-cta an-cta" href="#/analyse">🎥 Filmer et comparer</a></div>
         <div class="hero-stats">
           <div><b>6</b>familles</div>
           <div><b>${nEl}</b>figures</div>
@@ -88,6 +90,7 @@ function pageHome() {
     <div class="grid theme-grid">${THEMES.map(themeCard).join('')}</div>
     <div class="section-title"><h2>Avant de commencer</h2></div>
     <div class="grid info-grid">
+      <a class="info-card" href="#/analyse"><span class="ico">🎥</span><div><h3>Filmer et comparer</h3><p>Filme un camarade : sa vidéo se met à côté de l’animation pour juger si la figure est réussie.</p></div></a>
       <a class="info-card" href="#/enchainement"><span class="ico">🤸</span><div><h3>Créer mon enchaînement</h3><p>Un élément par famille, dans l’ordre que tu veux, et l’animation de tout l’enchaînement.</p></div></a>
       <a class="info-card" href="#/securite"><span class="ico">🛡️</span><div><h3>Consignes de sécurité</h3><p>Matériel, espace de travail, parade et aide.</p></div></a>
       <a class="info-card" href="#/securite#validation"><span class="ico">✅</span><div><h3>Valider un niveau</h3><p>${esc(VALIDATION.devise)}.</p></div></a>
@@ -149,6 +152,7 @@ function pageElement(id) {
       <div>
         ${e.variantes ? `<div class="variants">${e.variantes.map((v, k) => `<button class="chip ${k === 0 ? 'on' : ''}" data-variant="${v.anim}">${esc(v.nom)}</button>`).join('')}</div>` : ''}
         <div id="player"></div>
+        <a class="an-link" href="#/analyse/element/${e.id}">🎥 Filmer un camarade et comparer avec cette animation</a>
         ${e.prof || lv?.parade ? `<div class="warn">⚠️ Élément à travailler uniquement avec le professeur et une parade.</div>` : ''}
       </div>
       <aside>
@@ -208,7 +212,7 @@ function pageProgression(id, openLv) {
         body.dataset.done = '1';
         const n = t.niveaux[+d.dataset.k];
         body.innerHTML = `
-          <div><div class="pl-holder"></div>${n.parade ? '<div class="warn">⚠️ Toujours avec une parade et le professeur.</div>' : ''}</div>
+          <div><div class="pl-holder"></div><a class="an-link" href="#/analyse/niveau/${t.id}/${n.niv}">🎥 Filmer et comparer ce niveau</a>${n.parade ? '<div class="warn">⚠️ Toujours avec une parade et le professeur.</div>' : ''}</div>
           <div>
             <h4>Critères de réussite</h4><ul class="checks">${n.criteres.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
             <h4 style="margin-top:14px">Consignes</h4><ol>${n.consignes.map(c => `<li>${esc(c)}</li>`).join('')}</ol>
@@ -229,7 +233,7 @@ function pageProgression(id, openLv) {
         }));
       }
     };
-    d.addEventListener('toggle', fill);
+    d.addEventListener('toggle', () => { fill(); if (d.open) setFab(`#/analyse/niveau/${t.id}/${t.niveaux[+d.dataset.k].niv}`); });
     fill();
   });
   if (openLv) setTimeout(() => $('#niv-' + openLv)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -478,12 +482,19 @@ function route() {
   else if (a === 'securite') pageSecurite();
   else if (a === 'enchainement') pageEnchainement(b);
   else if (a === 'ma-progression') pageMaProgression();
+  else if (a === 'analyse') pageAnalyse(b, c, h.split('/')[3]);
   else pageNotFound();
-  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité', enchainement: 'Mon enchaînement', 'ma-progression': 'Enregistrer ma progression' };
+  setFab(analyseHref(a, b, c), a === 'analyse' || a === 'ma-progression');
+  const titles = { famille: FAMILLES.find(f => f.id === b)?.titre, element: elById(b)?.nom, progression: themeById(b)?.titre, progressions: 'Progressions', securite: 'Sécurité', enchainement: 'Mon enchaînement', 'ma-progression': 'Enregistrer ma progression', analyse: 'Filmer et comparer' };
   document.title = (titles[a] ? titles[a] + ' · ' : '') + 'Gym EPS';
   if (!(a === 'progression' && c) && !location.hash.includes('#validation')) window.scrollTo(0, 0);
   app.focus({ preventScroll: true });
 }
+// bouton flottant « Filmer et comparer », présent sur toutes les pages (il vise la figure affichée)
+const fab = $('.fab-analyse');
+function setFab(href, hide) { if (!fab) return; if (href) fab.href = href; if (hide !== undefined) fab.hidden = hide; }
+initAnalyse({ app, $, esc, elById, themeById, FAMILLES, THEMES, NIVEAUX, LEVEL_COLORS, lvlTag, setAccent, lazyThumbs, mountPlayer, pageNotFound,
+  resetPlayers: () => { players.forEach(p => p.destroy()); players = []; } });
 window.addEventListener('hashchange', route);
 route();
 
