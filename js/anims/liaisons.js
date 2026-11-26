@@ -130,18 +130,20 @@ export const cerclesJambe = (n = 2) => {
   return { keys: k, thumb: 0.66 };
 };
 
-/** Cercle des jambes serrées (ou écartées) en appui sur les mains. */
-export const cercleJambes = () => {
-  const sit = { lean: 0, T: -22, th: 104, sn: 104, hpa: 34, an: 55, ff: 0, ar: 70, fa: 70, sha: 55, hf: 0, nk: 8 }; // bassin droit : on tourne autour de la verticale
-  return {
-    keys: [
-      KW(0, { ...sit, th: 90, sn: 90, T: -5, ar: 10, fa: 10, sha: 20, yaw: 0 }, { label: 'Assis·e, jambes tendues écartées' }),
-      KW(0.5, { ...sit, yaw: 0 }, { label: 'Décoller les jambes tendues, buste droit' }),
-      KW(1.0, { ...sit, yaw: 120 }, { label: 'Les jambes font un cercle complet : pivoter sur les fesses' }),
-      KW(1.5, { ...sit, yaw: 240 }),
-      KW(2.0, { ...sit, yaw: 360 }),
-      KW(2.5, { ...sit, th: 90, sn: 90, T: -5, ar: 10, fa: 10, sha: 20, yaw: 360 }, { label: 'Reposer les jambes' }),
-    ],
-    thumb: 1.2,
-  };
+/** Cercle des jambes serrées : en appui sur les MAINS seulement, fesses décollées, pieds en l'air (demande de Gabin) ;
+ * les jambes font le tour : appui facial → passage sous une main levée → appui dorsal (bassin haut) → sous l'autre main → appui facial. */
+export const cercleJambes = (lv = 0.86) => {
+  const LV = lv * 100;
+  const sup = { lean: LV, sp: 0, nk: -10, hp: [14, 0, 0], kn: 0, an: 40, ff: 0, sh: [LV, 6, 0], el: 0, hf: 1, wr: 85 };
+  const k = [K(0, { ...sup, yaw: 0 }, { label: 'Appui sur les mains, fesses et pieds décollés, jambes serrées tendues', plant: HANDS })];
+  const steps = [
+    [90, { shR: [0, 88, 0], shL: [0, 100, 0], hR: 1, hL: 0 }, ['handR'], 'Lancer les jambes sur le côté : lever une main pour les laisser passer'],
+    [180, { sh: [-LV, 6, 0], hp: [-14, 0, 0], hf: 1, nk: 10 }, HANDS, 'Appui dorsal : bras tendus, bassin haut'],
+    [270, { shL: [0, 88, 0], shR: [0, 100, 0], hL: 1, hR: 0, nk: -10 }, ['handL'], 'Les jambes passent sous l’autre main'],
+    [360, { sh: [LV, 6, 0], hf: 1, nk: -10 }, HANDS, 'Retour en appui facial : le cercle est fini'],
+  ];
+  let t = 0.35;
+  for (const [y, p, plant, label] of steps) { t += 0.45; k.push(K(t, { ...sup, ...p, yaw: y }, { plant, label })); }
+  k.push(K(t + 0.5, {}, {}));
+  return { keys: k, thumb: 1.1 };
 };
