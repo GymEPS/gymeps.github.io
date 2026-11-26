@@ -107,15 +107,21 @@ export const atrHealy = () => ({
   thumb: 1.9,
 });
 
-/** ATR face au mur : mains au sol, monter les pieds au mur, tenir, rouler. */
+/** ATR face au mur (fiche « ATR » niveau A) : le mur et le bloc triangulaire sont DERRIÈRE l'élève (côté -x).
+ * Mains au sol, les pieds montent le plan incliné puis le mur ; ventre face au mur, seuls les pieds le touchent ; on roule en s'éloignant du mur. */
+const MUR_FACE = -0.48; // face du mur (les orteils le touchent en ATR, rien ne le traverse : voir tests/anims.test.mjs)
 export const atrFaceMur = () => ({
-  props: [{ k: 'box', x0: 0.9, x1: 1.05, z0: -0.9, z1: 0.9, h: 2.2, color: '#475569', solid: false }],
+  props: [
+    { k: 'box', x0: MUR_FACE - 0.15, x1: MUR_FACE, z0: -0.9, z1: 0.9, h: 2.2, color: '#475569', solid: false, wall: true },
+    { k: 'wedge', x0: MUR_FACE, x1: MUR_FACE + 0.45, z0: -0.4, z1: 0.4, h0: 0.4, h1: 0, color: '#0ea5e9' },
+  ],
   keys: chain(
-    [KW(0, { ...ST, lean: 75, T: 98, th: -5, sn: -5, ar: 10, fa: 10, hf: 1, wr: 80, ff: 0.6, an: 20 }, { label: 'Mains au sol devant le mur', plant: ALL4 }),
-      KW(0.6, { lean: 110, T: 140, th: -60, sn: -150, ar: 2, fa: 2, an: 40, ff: 0, nk: -20 }, { plant: HANDS, label: 'Monter les pieds au mur' }),
-      KW(1.3, { lean: 160, T: 172, th: -150, sn: -175, ar: 0, fa: 0, an: 45, nk: -22 }),
-      KW(1.9, { ...ATR, lean: 176, T: 176, th: -176, sn: -176 }, { label: 'Pousser bras tendus, corps gainé, regarder les mains' })],
-    hold([KW(0, {})], 1.5, { label: 'Tenir 3 secondes' }),
+    [KW(0, { lean: 172, T: 174, th: -25, sn: -35, ar: 6, fa: 6, hf: 1, wr: 88, ff: 0.5, an: 10, nk: -20 }, { label: 'Mains au sol, pieds sur le plan incliné', plant: ALL4 }),
+      KW(0.35, {}, { plant: HANDS }),
+      KW(0.75, { lean: 178, T: 182, th: -45, sn: -150, ar: -2, fa: -2, an: 20, ff: 0, nk: -20 }, { label: 'Monter les pieds contre le mur' }),
+      KW(1.15, { lean: 176, T: 180, th: -110, sn: -170, ar: 2, fa: 2, an: 35, nk: -20 }),
+      KW(1.8, { lean: 162, T: 162, th: -162, sn: -162, ar: 18, fa: 18, an: 45, nk: -22 }, { label: 'Pousser sur les bras tendus, ventre face au mur' })],
+    hold([KW(0, {})], 1.5, { label: 'Tenir 3 secondes, regarder les mains' }),
     [KW(0, {}),
       KW(0.4, { lean: 196, T: 200, th: -150, sn: -150, ar: 30, fa: 30, nk: 30 }, { label: 'Rouler en pliant les bras' }),
       KW(0.75, { lean: 215, T: 228, th: -120, sn: -150, ar: -65, fa: 35, nk: 50 }),
@@ -123,14 +129,14 @@ export const atrFaceMur = () => ({
       KW(1.45, { lean: 320, T: 360, th: 85, sn: -55, ar: 100, fa: 100, nk: 20, ff: 0.6 }),
       KW(1.8, { lean: 342, T: 382, th: 78, sn: -32, ar: 120, fa: 120, ff: 1, nk: 0 })],
   ),
-  thumb: 2.4,
+  thumb: 2.6,
 });
 
 /** Placement du dos sur le bloc puis ATR dos au mur. */
 export const placementDosAtrMur = () => ({
   props: [
     { k: 'box', x0: -1.3, x1: -0.6, z0: -0.4, z1: 0.4, h: 0.42, color: '#0ea5e9' },
-    { k: 'box', x0: 0.16, x1: 0.4, z0: -0.9, z1: 0.9, h: 2.0, color: '#64748b', solid: false },
+    { k: 'box', x0: 0.25, x1: 0.49, z0: -0.9, z1: 0.9, h: 2.0, color: '#64748b', solid: false, wall: true },
   ],
   keys: chain(
     [KW(0, { lean: 182, T: 182, th: -58, sn: -58, ar: 0, fa: 0, hf: 1, wr: 88, ff: 0, an: 10, nk: -22 }, { label: 'Pieds sur le bloc, jambes tendues : dos et bras alignés', plant: ALL4 })],
@@ -147,7 +153,7 @@ export const placementDosAtrMur = () => ({
 
 /** ATR dos au mur (arrivée des talons contre le tapis au mur). */
 export const atrDosMur = () => ({
-  props: [{ k: 'box', x0: 1.45, x1: 1.75, z0: -0.9, z1: 0.9, h: 2.0, color: '#64748b', solid: false }],
+  props: [{ k: 'box', x0: 2.33, x1: 2.63, z0: -0.9, z1: 0.9, h: 2.0, color: '#64748b', solid: false, wall: true }], // tapis au mur : les talons le touchent en ATR
   keys: chain(toLunge(), lungeToATR(), [KW(0, ATR), KW(0.25, { ...ATR, lean: 188, T: 190, th: -186, sn: -186 }, { label: 'Pieds contre le tapis au mur' })],
     hold([KW(0, {})], 2.4, { label: 'Tenir 3 secondes, regarder les mains' }), atrToLunge(), finish(0.4)),
   thumb: 2.0,
