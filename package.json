@@ -1,1 +1,1 @@
-{"type":"module","private":true,"scripts":{"test":"node tests/anims.test.mjs"}}
+{"type":"module","private":true,"scripts":{"test":"node tests/anims.test.mjs","version":"node tests/version.mjs"}}

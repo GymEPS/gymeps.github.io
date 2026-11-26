@@ -22,6 +22,9 @@ Bibliothèque de gymnastique au sol pour les élèves de 4e de Gabin (professeur
 - Un fichier par famille + `index.js` (registre identifiant → fonction). Chaque identifiant utilisé dans les données doit exister (le test le vérifie).
 - Contrôle : `npm test` (= `node tests/anims.test.mjs` : calcul de toutes les animations, rien d'enfoncé de plus de 3 cm, segments de longueur constante, animations manquantes). Appuis : `node tests/appuis.mjs id…` (hauteur en cm des fesses, mains, pieds, épaules à chaque phase : un appui au sol ≈ fesses 8, poignet 3, talon / orteils 2 ; à lancer après toute modification d'une position au sol). Contrôle visuel : `dev.html?q=id1,id2&n=12&c=6&h=150&w=620&v=profil|trois|face|dessus` (planche d'images).
 
+## Publier
+Avant chaque `git push` : `npm run version` (empreinte de chaque fichier JS / CSS dans `index.html` : carte d’import + `?v=`). Sans ça, un navigateur peut garder d’anciens fichiers et mélanger les versions → page vide (vu sur Opera le 26/11/2026). Filet de sécurité : si `window.__gymReady` (fin de app.js) n’est pas posé après 5 s, la page propose « Recharger ».
+
 ## Aperçu local
 Entrée `gymeps` de `Claude dump/.claude/launch.json` (serveur statique Python, port 5210).
 

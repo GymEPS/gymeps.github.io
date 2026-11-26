@@ -530,3 +530,5 @@ document.addEventListener('keydown', e => {
   if (e.key === '/' && layer.hidden && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
   if (e.key === 'Escape' && !layer.hidden) closeSearch();
 });
+
+window.__gymReady = true;
